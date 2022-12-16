@@ -1,0 +1,20 @@
+(footprint "rail-mount" (version 20211014) (generator pcbnew)
+  (layer "F.Cu")
+  (tedit 6378E7C5)
+  (descr "Mounting Hole 2mm, no annular")
+  (tags "mounting hole 2mm no annular")
+  (attr exclude_from_pos_files exclude_from_bom)
+  (fp_text reference "REF**" (at 0 -3.2) (layer "F.SilkS") hide
+    (effects (font (size 1 1) (thickness 0.15)))
+    (tstamp c0323b4b-fd3f-4a79-9b0d-b4ce92f237e9)
+  )
+  (fp_text value "rail-mount" (at 0 3.1) (layer "F.Fab") hide
+    (effects (font (size 1 1) (thickness 0.15)))
+    (tstamp 93f80e66-0dc7-4b9c-818c-d05d1c4619f5)
+  )
+  (fp_text user "${REFERENCE}" (at 0 0) (layer "F.Fab") hide
+    (effects (font (size 1 1) (thickness 0.15)))
+    (tstamp 32400434-cef7-4b60-8885-ca35c36165f3)
+  )
+  (pad "" np_thru_hole circle (at 0 0) (size 2 2) (drill 2) (layers *.Cu *.Mask) (tstamp 3323b302-c8c0-4b50-b7a2-33325656883e))
+)

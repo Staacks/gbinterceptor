@@ -1,0 +1,33 @@
+.program memoryBus
+
+.wrap_target
+    wait 1 pin 28       ;As we set GPIO6 as pin0, CLK can be found on GPIO 2 which is now wrapped around to pin 28
+    wait 0 pin 28       ;Wait for falling flank of CLK
+    mov isr pins
+    push
+.wrap
+
+% c-sdk {
+
+void memoryBus_program_init(PIO pio, uint sm, uint offset, float div) {
+    pio_sm_config c = memoryBus_program_get_default_config(offset);
+    sm_config_set_clkdiv(&c, div); //Clock
+
+    //GPIO setup
+    //See schematic: Pin 2 is CLK, followed by RD/WR/CS, then 16bit address and 8bit data
+    //However, since we read all pins as 32bit, we want to allign the address to pin 6, so we get
+    //0x0000ffff as address
+    //0x00ff0000 as data
+    //0xf0000000 containing the bits for CLK (should be 0 when reading), nWR, nRD and nCS
+    //0x0f000000 containing garbage (our status LEDs and virtual padding GPIOs)
+
+    sm_config_set_in_pins(&c, 6);
+    pio_sm_set_consecutive_pindirs(pio, sm, 2, 28, false);
+
+    sm_config_set_in_shift(&c, true, false, 32);
+    
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+%}
