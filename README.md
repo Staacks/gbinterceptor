@@ -17,7 +17,9 @@ Please make sure to understand what this device does and what its limitations ar
 
 Also check out the compatibility tables for host software (for example OBS) and particular games. In principle this is a USB video class device and does not require drivers, but not all software supports the unsusual video format of the Interceptor. Similarly, games should usually work, but sometimes there are some details that the Interceptor does not yet support properly and some rare things that cannot work based on the principle of this device.
 
-TODO
+* [Game Boy compatibility](https://github.com/Staacks/gbinterceptor/wiki/Game-Boy-compatibility-list)
+* [Host software compatibility](https://github.com/Staacks/gbinterceptor/wiki/Host-software-compatibility)
+* [Game compatibility](https://github.com/Staacks/gbinterceptor/wiki/Game-compatibility)
 
 # Building the Interceptor
 
