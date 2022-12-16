@@ -1,8 +1,8 @@
 ---
-name: Game issue template
+name: Game issue
 about: Bugs and problems with specific games
-title: "[GAME] "
-labels: ''
+title: ''
+labels: Game issue
 assignees: ''
 
 ---
