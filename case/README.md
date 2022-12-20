@@ -1,6 +1,6 @@
 # GB Interceptor Case
 
-These are the design files for the 3d printed case for the GB Interceptor. See the build guide in the main Readme for details.
+These are the design files for the 3d printed case for the GB Interceptor. See the [build guide](https://github.com/Staacks/gbinterceptor/wiki/Build-guide) and the [Case guides](https://github.com/Staacks/gbinterceptor/wiki#case-options) in the main Readme for details.
 
 # Important note about the break-out extension board
 
