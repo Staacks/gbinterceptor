@@ -5,7 +5,7 @@ This open source and open hardware Game Boy adapter uses an rp2040 to capture th
 
 Details about the concept can be found at https://there.oughta.be/a/game-boy-capture-cartridge and an overview is given in the following video:
 
-TODO
+[![Youtube Video: GB Interceptor: A Game Boy capture cartridge](https://img.youtube.com/vi/6mOJtrFnawk/0.jpg)](https://youtu.be/6mOJtrFnawk)
 
 If you have pull-requests, bug reports or want to contribute new case designs, please do not hesitate to open an issue. For generic discussions, "show and tell" and if you are looking for support for something that is not a problem in the code here, I would recommend .
 
@@ -17,13 +17,15 @@ Please make sure to understand what this device does and what its limitations ar
 
 Also check out the compatibility tables for host software (for example OBS) and particular games. In principle this is a USB video class device and does not require drivers, but not all software supports the unsusual video format of the Interceptor. Similarly, games should usually work, but sometimes there are some details that the Interceptor does not yet support properly and some rare things that cannot work based on the principle of this device.
 
-* [Game Boy compatibility](https://github.com/Staacks/gbinterceptor/wiki/Game-Boy-compatibility-list)
+* [Game Boy compatibility](https://github.com/Staacks/gbinterceptor/wiki/Game-Boy-compatibility)
 * [Host software compatibility](https://github.com/Staacks/gbinterceptor/wiki/Host-software-compatibility)
 * [Game compatibility](https://github.com/Staacks/gbinterceptor/wiki/Game-compatibility)
 
 # Building the Interceptor
 
-TODO
+There is an [order and build video](https://youtu.be/Lg92tVkEE98) to guide you through the build process which I highly recommend, especially if you are not used to ordering PCBs. A [written guide can be found in this repository's wiki](https://github.com/Staacks/gbinterceptor/wiki/Build-guide).
+
+
 
 # Support
 
