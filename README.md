@@ -35,5 +35,11 @@ If you are having difficulties to order, build or use your Interceptor, please d
 
 If you found a bug and in particular if you find glitches in a game, please open an issue here on Github.
 
+# Building the firmware
+
+Most users should just install the latest release uf2 as described in the [Build guide](https://github.com/Staacks/gbinterceptor/wiki/Build-guide), but if you want to build it yourself, you will need the [Raspberry Pi Pico SDK](https://github.com/raspberrypi/pico-sdk). Don't forget to set PICO_SDK_PATH accordingly.
+
+Make sure to check out the submodules too and specifically make sure that the [TinyUSB](https://github.com/hathach/tinyusb) submodule is at least on version 0.14.0 as the Pico SDK currently references an older version. (Also see [#3](https://github.com/Staacks/gbinterceptor/issues/3))
+
 # License
 The code is released under the GNU General Public Licence 3 and the design files (PCB layout and 3d printed case) are released under the Creative Commons licence CC-BY 4.0.
