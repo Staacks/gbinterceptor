@@ -84,9 +84,9 @@ char const* string_desc_arr [] =
 {
   (const char[]) { 0x09, 0x04 }, // 0: is supported language is English (0x0409)
   "there.oughta.be",             // 1: Manufacturer
-  "Game Boy Interceptor",        // 2: Product
+  "GB Interceptor",              // 2: Product
   "123456",                      // 3: Serials, should use chip ID
-  "TinyUSB UVC",                 // 4: UVC Interface
+  "GB Interceptor Video",        // 4: UVC Interface
 };
 
 static uint16_t _desc_str[32];
