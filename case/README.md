@@ -12,9 +12,9 @@ If you want to create a custom case using the extension board to place the cartr
 
 Please, find details about each option in the [case guides](https://github.com/Staacks/gbinterceptor/wiki#case-options) on the Wiki.
 
-* 3dprint
+* __3dprint__  
   The original 3d printed case as discussed in the videos.
-* 3dprint-angryhelder
+* __3dprint-angryhelder__  
   Variant by AngryHelder (Helder Silva) of the original 3d printed case. These are step files derived from the original 3dprint case to allow for easy adaption into new case projects. It also includes a version that is easier and nicer to print but requires glueing.
 
 
