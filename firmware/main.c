@@ -269,7 +269,10 @@ void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)  {
 	(void)rts;
 
 	if (dtr) {
-		printf("\nGBInterceptor\n");
+        fflush(stdout);
+		printf("\n\nGB Interceptor\nVersion ");
+        printf(VERSION);
+        printf("\n\n");
 	}
 }
 
