@@ -204,7 +204,7 @@ int main(void) {
                 }
 
                 tud_task();
-                if (renderState != done) {
+                if (renderState == done) {
                     //All pixels for this line have been rendered. Avoid USB tasks while rendering actual pixels. We can do this during HBLANK or VBLANK.
                     usbSendFrame(true);
                 }
