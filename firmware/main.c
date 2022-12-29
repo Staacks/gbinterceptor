@@ -83,6 +83,22 @@ void loadFallbackScreen(uint8_t * screen) {
     dma_channel_configure(dmaChannel, &dmaConfig, frontBuffer, screen, FRAME_SIZE / 4, true);
 }
 
+bool usbSendFrame(bool swap) {
+    if (tud_video_n_streaming(0, 0)) {
+        if (!frameSending) {
+            frameSending = true;
+
+            if (swap)
+                swapFrontbuffer();
+            tud_video_n_frame_xfer(0, 0, (void*)frontBuffer, FRAME_SIZE);
+            return true;
+        }
+    } else {
+        frameSending = false;
+    }
+    return false;
+}
+
 void animateFallbackScreen() {
     //Just a quick idle animation by moving around the edges of the UV plane. Not exactly a beautiful rainbow, but enough to show that we are alive.
     uint8_t c, x, y;
@@ -122,18 +138,13 @@ int main(void) {
     setupGPIO();
 
     multicore_launch_core1(handleMemoryBus);
+    
     while (1) {
 
         printf("Waiting for game.\n");
         while (!running) {
-            if (tud_video_n_streaming(0, 0)) {
-                if (!frameSending) {
-                    animateFallbackScreen();
-                    tud_video_n_frame_xfer(0, 0, (void*)frontBuffer, FRAME_SIZE);
-                    frameSending = true;
-                }
-            } else
-                frameSending = false;
+            if (usbSendFrame(false))
+                animateFallbackScreen();
             tud_task();
         }
 
@@ -195,14 +206,7 @@ int main(void) {
                 tud_task();
                 if (renderState != done) {
                     //All pixels for this line have been rendered. Avoid USB tasks while rendering actual pixels. We can do this during HBLANK or VBLANK.
-                    if (tud_video_n_streaming(0, 0)) {
-                        if (!frameSending) {
-                            swapFrontbuffer();
-                            tud_video_n_frame_xfer(0, 0, (void*)frontBuffer, FRAME_SIZE);
-                            frameSending = true;
-                        }
-                    } else
-                        frameSending = false;
+                    usbSendFrame(true);
                 }
             #endif
         }
@@ -217,14 +221,8 @@ int main(void) {
 
             //Show error screen while the Game Boy is still turned on
             while (gpio_get(GBSENSE_PIN)) {
-                if (tud_video_n_streaming(0, 0)) {
-                    if (!frameSending) {
-                        animateFallbackScreen();
-                        tud_video_n_frame_xfer(0, 0, (void*)frontBuffer, FRAME_SIZE);
-                        frameSending = true;
-                    }
-                } else
-                    frameSending = false;
+                if (usbSendFrame(false))
+                    animateFallbackScreen();
                 tud_task();
             }
         }
@@ -256,7 +254,6 @@ void tud_suspend_cb(bool remote_wakeup_en) {
 void tud_resume_cb(void) {
 }
 
-
 void tud_video_frame_xfer_complete_cb(uint_fast8_t ctl_idx, uint_fast8_t stm_idx) {
   (void)ctl_idx; (void)stm_idx;
   frameSending = false;
@@ -266,14 +263,13 @@ int tud_video_commit_cb(uint_fast8_t ctl_idx, uint_fast8_t stm_idx, video_probe_
   (void)ctl_idx; (void)stm_idx;
   return VIDEO_ERROR_NONE;
 }
-/*
+
 void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)  {
 	(void)itf;
 	(void)rts;
 
 	if (dtr) {
-		tud_cdc_write_str("\r\nGBInterceptor\r\n");
-        tud_cdc_write_flush();
+		printf("\nGBInterceptor\n");
 	}
 }
-*/
+
