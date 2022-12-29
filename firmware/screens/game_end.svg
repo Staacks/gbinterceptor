@@ -9,7 +9,7 @@
    id="svg5"
    inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    sodipodi:docname="game_end.svg"
-   inkscape:export-filename="/home/dicon/nextcloud/projekte/gb-stream-cart/screens/game_end.png"
+   inkscape:export-filename="/home/dicon/nextcloud/projekte/gb-stream-cart/src/screens/game_end.png"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -28,9 +28,9 @@
      showgrid="false"
      units="px"
      width="160px"
-     inkscape:zoom="3.1037318"
-     inkscape:cx="173.33972"
-     inkscape:cy="111.8009"
+     inkscape:zoom="3.5759128"
+     inkscape:cx="58.166967"
+     inkscape:cy="148.49355"
      inkscape:window-width="1920"
      inkscape:window-height="1140"
      inkscape:window-x="0"
@@ -94,30 +94,19 @@
          id="tspan73086">a/game-boy-capture-cartridge</tspan></text>
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:4.93889px;line-height:1;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#00ffa0;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       style="font-style:normal;font-weight:normal;font-size:4.93889px;line-height:1;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.264583"
        x="21.084673"
-       y="25.4128"
+       y="24.354465"
        id="text82401"><tspan
          sodipodi:role="line"
-         id="tspan82399"
-         style="font-size:4.93889px;text-align:center;text-anchor:middle;fill:#00ffa0;fill-opacity:1;stroke-width:0.264583"
+         style="font-size:4.93889px;text-align:center;text-anchor:middle;fill:#ff0000;fill-opacity:1;stroke-width:0.264583"
          x="21.084673"
-         y="25.4128">Waiting for</tspan><tspan
+         y="24.354465"
+         id="tspan87397">Game Boy</tspan><tspan
          sodipodi:role="line"
-         style="font-size:4.93889px;text-align:center;text-anchor:middle;fill:#00ffa0;fill-opacity:1;stroke-width:0.264583"
+         style="font-size:4.93889px;text-align:center;text-anchor:middle;fill:#ff0000;fill-opacity:1;stroke-width:0.264583"
          x="21.084673"
-         y="30.35169"
-         id="tspan87397">game...</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:2.77211px;line-height:1;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.207908"
-       x="2.6139698"
-       y="19.877157"
-       id="text57270-1"><tspan
-         sodipodi:role="line"
-         style="font-size:2.77211px;fill:#ffffff;fill-opacity:1;stroke-width:0.207908"
-         x="2.6139698"
-         y="19.877157"
-         id="tspan73086-8">Game has been turned off.</tspan></text>
+         y="29.293356"
+         id="tspan1898">is turned off</tspan></text>
   </g>
 </svg>

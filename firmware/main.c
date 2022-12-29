@@ -25,6 +25,8 @@ bool frameSending = false;
 bool modeButtonDebounce = true;
 
 uint fallbackFrameIndex = 0;
+enum FallbackScreenType {FST_NONE = 0, FST_DEFAULT, FST_OFF, FST_ERROR} fallbackScreenType = FST_NONE;  
+
 
 int dmaChannel;
 dma_channel_config dmaConfig;
@@ -65,11 +67,8 @@ void checkModeSwitch() {
     }
 }
 
-void checkGameBoyOn() {
-    if (!gpio_get(GBSENSE_PIN)) {
-        running = false;
-        error = NULL;
-    }
+bool static inline isGameBoyOn() {
+    return gpio_get(GBSENSE_PIN);
 }
 
 void setupDMA() {
@@ -79,8 +78,9 @@ void setupDMA() {
     channel_config_set_write_increment(&dmaConfig, true);
 }
 
-void loadFallbackScreen(uint8_t * screen) {
+void loadFallbackScreen(uint8_t * screen, enum FallbackScreenType type) {
     dma_channel_configure(dmaChannel, &dmaConfig, frontBuffer, screen, FRAME_SIZE / 4, true);
+    fallbackScreenType = type;
 }
 
 bool usbSendFrame(bool swap) {
@@ -132,7 +132,6 @@ int main(void) {
 
     board_init();
     setupDMA();
-    loadFallbackScreen(default_yuv);
     tud_init(BOARD_TUD_RHPORT);
     stdio_init_all();
     setupGPIO();
@@ -146,6 +145,14 @@ int main(void) {
             if (usbSendFrame(false))
                 animateFallbackScreen();
             tud_task();
+            if (isGameBoyOn()) {
+                if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_OFF)
+                    loadFallbackScreen(default_yuv, FST_DEFAULT);
+            } else {
+                if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_DEFAULT || fallbackScreenType == FST_ERROR)
+                    loadFallbackScreen(game_end_yuv, FST_OFF);
+            }
+            
         }
 
         ledOn();
@@ -192,7 +199,6 @@ int main(void) {
                 if (!vblank && y >= SCREEN_H) {
                     vblank = true;
                     ledOff(); //Switches the LED GPIO to input to allow to use the same GPIO pin to read the mode button state, however, in order to allow the line to settle first, we do the read-out at the end of vblank and then re-enable the LED
-                    checkGameBoyOn();
                     startBackbufferBlend();
                 } else if (vblank) {
                     if (y < SCREEN_H) {
@@ -211,25 +217,15 @@ int main(void) {
             #endif
         }
 
-        mutex_enter_blocking(&cpubusMutex);
         ledOff();
         if (error != NULL) {
-            loadFallbackScreen(errorIsStall ? stalled_yuv : error_yuv);
+            mutex_enter_blocking(&cpubusMutex); //Grab mutex immediately.
+            loadFallbackScreen(errorIsStall ? stalled_yuv : error_yuv, FST_ERROR);
             dumpMemory();
             dumpBus();
             stdio_flush();
-
-            //Show error screen while the Game Boy is still turned on
-            while (gpio_get(GBSENSE_PIN)) {
-                if (usbSendFrame(false))
-                    animateFallbackScreen();
-                tud_task();
-            }
+            mutex_exit(&cpubusMutex);
         }
-        mutex_exit(&cpubusMutex);
-
-        loadFallbackScreen(game_end_yuv);
-        printf("Game gone.\n");
     }
 
     return 0;

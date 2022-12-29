@@ -85,6 +85,13 @@ void setupPIO() {
     rxf = busPIO->rxf + busSM;
 }
 
+void stop(const char* errorMsg) {
+    if (running) { //Avoid overwriting a previous reason to stop
+        running = false;
+        error = errorMsg;
+    }
+}
+
 void setupOamDMA() {
     oamDmaChannel = dma_claim_unused_channel(true);
     oamDmaConfig = dma_channel_get_default_config(oamDmaChannel);
@@ -94,8 +101,7 @@ void setupOamDMA() {
 
 void dmaToOAM(uint16_t source) {
     if (dma_channel_is_busy(oamDmaChannel)) {
-        error = "DMA started while channel busy.";
-        running = false;
+        stop("DMA started while channel busy.");
         return;
     }
     dma_channel_configure(oamDmaChannel, &oamDmaConfig, &memory[0xfe00], &memory[source], 0xa0 / 4, true);
@@ -188,8 +194,7 @@ void getNextFromBus() {
                         //This should not happen unless the Game Boy has been turned off.
                         //I can imaginge that a game could wait indefinitely for a gamepad input (can it?), but not using vblank to have anything active on the screen would be unusual.
                         //If we find a game that waits longer than one frame, we need to check which interrupts are enabled and will not have a chance to determine if the Game Boy was turned off if only the gamepad interrupt is enabled.
-                        running = false;
-                        error = "Halt timed out.";
+                        stop("Halt timed out.");
                     }
                     return;
                 }
@@ -210,10 +215,9 @@ void handleMemoryBus() { //To be executed on second core
     setupPIO();
     setupOamDMA();
     mutex_init(&cpubusMutex);
+    mutex_enter_blocking(&cpubusMutex); //Default is that this thread is in charge of the bus and its history array. We only yield occasionally.
 
     while (1) {
-        mutex_enter_blocking(&cpubusMutex);
-
         reset();
 
         //Wait for game to actually start and use this to determine the cycleRatio
@@ -268,8 +272,7 @@ void handleMemoryBus() { //To be executed on second core
                             getNextFromBus();
                             wait++;
                             if (wait > 20) {
-                                running = false;
-                                error = "Could not find a ret after DMA.";
+                                stop("Could not find a ret after DMA.");
                                 break;
                             }
                         }
@@ -325,8 +328,7 @@ void handleMemoryBus() { //To be executed on second core
 
             //Check if we missed an instruction and stop if we did.
             if (busPIO->fdebug & busPIOstallMask) {
-                error = "PIO stalled.";
-                running = false;
+                stop("PIO stalled.");
                 errorIsStall = true;
             }
         }
@@ -336,10 +338,11 @@ void handleMemoryBus() { //To be executed on second core
             for (uint8_t i = 0; i < DUMPMORE - HISTORY_READAHEAD; i++) {
                 getNextFromBus();
             }
+            mutex_exit(&cpubusMutex);
+            sleep_ms(20); //If error is not null, we have to temporarily hand over control of the history to the main thread, so it can dump the data without mixing different outputs in stdio (if we dumped on this thread here) or messing up the dump (if we read more bus events while dumping)
+            mutex_enter_blocking(&cpubusMutex);
         }
         
-        mutex_exit(&cpubusMutex);
-        sleep_ms(1000);
     }
 }
 
