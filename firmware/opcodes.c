@@ -4,9 +4,22 @@
 #include "ppu.h"
 #include "debug.h"
 
-bool lySyncArmed = false;
-uint lySyncReferenceCycle;
-int lySyncOffset;
+
+bool syncArmed = false;
+uint statSyncStage = 0; //0 = false, 1 = register read to A, 2 = masked to 0x03, 3 = cp to 0x01
+uint lySyncStage = 0; //0 = false, 1 = register read, 2 = cp
+uint syncReferenceCycle;
+int syncOffset;
+
+//Helper to calculate offset to scanline for synching
+
+void setOffsetToLine(uint8_t line) {
+    syncOffset = (line - y) * CYCLES_PER_LINE - lineCycle;
+    if (syncOffset > CYCLES_PER_FRAME/2)
+        syncOffset -= CYCLES_PER_FRAME;
+    else if (syncOffset < -CYCLES_PER_FRAME/2)
+        syncOffset += CYCLES_PER_FRAME;
+}
 
 //Wrap memory writes to capture writes to registers
 
@@ -66,19 +79,34 @@ uint8_t static inline fromMemory() {
     DEBUG_TRIGGER_BREAKPOINT_AT_READ_FROM_ADDRESS
     switch (*address) {
         case 0xff04: return *div; //DIV register
+        case 0xff41:
+                    //STAT register. Since this is usually only used for conditional jumps done in the real Game Boy, emulating the correct value is not ciritcally here.
+                    //Instead we use it to synchronize our PPU to the real one:
+                    //We need to understand if the game reads STAT in a tight loop to enter some critical code with extremely precise timing and we need to synchronize our PPU to it.
+                    //However, since mode 0, 2 and 3 occur multiple time throughout a frame and only help if we already have a good synch, we only look at loops that wait for mode 1 (vblank).
+                    //This has a one specific kind of loop in mind: Read STAT into A, mask the mode bit (0x03), compare to the mode we are waiting for and then conditionally jump back if the result is non-zero
+                    //Honestly, this is just what I did for my Wifi cartridge and I am not sure if it is that common to do. But so far all other games were synched well enough through the vsync interrupt and a tight loop waiting for LY
+                    syncArmed = true;
+                    statSyncStage = 1;
+                    lySyncStage = 0;
+                    syncReferenceCycle = cycleIndex;
+                    if (y >= SCREEN_H)
+                        return 1;
+                    else switch (renderState) {
+                        case rendering: return 3;
+                        case done: return 0;
+                        default: return 2;
+                    }
         case 0xff44:
                     //LY register. The exact value usually is not critical as the Game Boy will usually only use this for conditional jumps, but we can return our PPU y position here anyway.
                     //We can assume that the game reads LY in a tight loop to enter some critical code with extremely precise timing and we need to synchronize our PPU to it.
                     //This is a very naive approach with DOnkey Kong Land in mind:
                     //LY is read periodically and compared to a for a nz jump. We can probably assume that LY will always be compared to a and that it makes sense for a tight loop to load the value for a before entering the loop.
                     //So, we remember the value of a here as the y coordinate at which our PPU should be now and note the difference to the actual ppu cycle. We then use a later JR jump (within three cycles) if it is not taken to apply the difference as vsync correction.
-                    lySyncArmed = true;
-                    lySyncReferenceCycle = cycleIndex;
-                    lySyncOffset = (*a - y) * CYCLES_PER_LINE - lineCycle;
-                    if (lySyncOffset > CYCLES_PER_FRAME/2)
-                        lySyncOffset -= CYCLES_PER_FRAME;
-                    else if (lySyncOffset < -CYCLES_PER_FRAME/2)
-                        lySyncOffset += CYCLES_PER_FRAME;
+                    syncArmed = true;
+                    statSyncStage = 0;
+                    lySyncStage = 1;
+                    syncReferenceCycle = cycleIndex;
                     return y;
     }
     return *opcode;
@@ -261,6 +289,12 @@ void and_ ## REGISTER() { \
     *a &= *REGISTER; \
     flags = 0x00000100; \
     *Z = (*a == 0); \
+    if (syncArmed) { \
+        if (statSyncStage == 1 && *REGISTER == 0x03) \
+            statSyncStage = 2; \
+        else \
+            syncArmed = false; \
+    } \
     getNextFromBus(); \
 }
 
@@ -286,6 +320,12 @@ void and_d8() {
     *a &= d8;
     flags = 0x00000100;
     *Z = (*a == 0);
+    if (syncArmed) {
+        if (statSyncStage == 1 && d8 == 0x03)
+            statSyncStage = 2;
+        else
+            syncArmed = false;
+    } \
     getNextFromBus();
 }
 
@@ -343,14 +383,19 @@ void cp_ ## REGISTER() { \
     *H = ((*a & 0x0f) < (*REGISTER & 0x0f)); \
     *C = (*a < *REGISTER); \
     \
-    if (lySyncArmed) { \
-        lySyncOffset = (*REGISTER - y) * CYCLES_PER_LINE - lineCycle; \
-        if (lySyncOffset > CYCLES_PER_FRAME/2) \
-            lySyncOffset -= CYCLES_PER_FRAME; \
-        else if (lySyncOffset < -CYCLES_PER_FRAME/2) \
-            lySyncOffset += CYCLES_PER_FRAME; \
+    if (syncArmed) { \
+        if (statSyncStage == 2) { \
+            if (*REGISTER == 0x01) { \
+                setOffsetToLine(144); \
+                statSyncStage = 3; \
+            } else \
+                syncArmed = false; \
+        } else if (lySyncStage == 1) { \
+            setOffsetToLine(*REGISTER); \
+            lySyncStage = 2; \
+        } else \
+            syncArmed = false; \
     } \
-    \
     getNextFromBus(); \
 }
 
@@ -379,12 +424,18 @@ void cp_d8() {
     *Z = (*a == d8);
     *H = ((*a & 0x0f) < (d8 & 0x0f));
     *C = (*a < d8);
-    if (lySyncArmed) {
-        lySyncOffset = (d8 - y) * CYCLES_PER_LINE - lineCycle;
-        if (lySyncOffset > CYCLES_PER_FRAME/2)
-            lySyncOffset -= CYCLES_PER_FRAME;
-        else if (lySyncOffset < -CYCLES_PER_FRAME/2)
-            lySyncOffset += CYCLES_PER_FRAME;
+    if (syncArmed) { \
+        if (statSyncStage == 2) {
+            if (d8 == 0x01) {
+                setOffsetToLine(144);
+                statSyncStage = 3;
+            } else
+                syncArmed = false;
+        } else if (lySyncStage == 1) {
+            setOffsetToLine(d8);
+            lySyncStage = 2;
+        } else
+            syncArmed = false;
     }
     getNextFromBus();
 }
@@ -548,12 +599,18 @@ void jr_nz() {
     getNextFromBus();
     if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
         getNextFromBus();               //If not equal, burn another cycle.
-    } else if (lySyncArmed) {
+    } else if (syncArmed) {
         //At this point the jump was not taken and we can assume that the condition we have been waiting for was finally found.
-        if (cycleIndex - lySyncReferenceCycle < 7) { //The JR did not occure more than 5 cycles later - anything else was not a tight loop and something more complex that we cannot handle
-            vblankOffset = lySyncOffset;
+        if (statSyncStage == 3) {
+            if (cycleIndex - syncReferenceCycle < 9) { //The JR did not occure more than 7 cycles later - anything else was not a tight loop and something more complex that we cannot handle
+                vblankOffset = syncOffset;
+            }
+        } else if (lySyncStage == 2) {
+            if (cycleIndex - syncReferenceCycle < 7) { //The JR did not occure more than 5 cycles later - anything else was not a tight loop and something more complex that we cannot handle
+                vblankOffset = syncOffset;
+            }
         }
-        lySyncArmed = false;
+        syncArmed = false;
     }
 }
 
@@ -563,12 +620,14 @@ void jr_z() {
     getNextFromBus();
     getNextFromBus();
     if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
-        if (lySyncArmed) {
+        if (syncArmed) {
             //At this point the jump was taken and we can assume that the condition we have been waiting for was finally found.
-            if (cycleIndex - lySyncReferenceCycle < 7) { //The JR did not occure more than 5 cycles later - anything else was not a tight loop and something more complex that we cannot handle
-                vblankOffset = lySyncOffset;
+            if (cycleIndex - syncReferenceCycle < 7) { //The JR did not occure more than 5 cycles later - anything else was not a tight loop and something more complex that we cannot handle
+            if (statSyncStage == 3 || lySyncStage == 2) {
+                vblankOffset = syncOffset;
             }
-            lySyncArmed = false;
+        }
+            syncArmed = false;
         }
         getNextFromBus();
     }
