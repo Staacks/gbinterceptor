@@ -272,26 +272,19 @@ void handleMemoryBus() { //To be executed on second core
                     bool synchronized = false;
                     int wait = 0;
                     while (!synchronized) {
-                        switch (*opcode) {
-                            case 0xc9: //unconditional return
-                                if ((uint16_t)history[(uint8_t)(cycleIndex+1)] == sp)
-                                    synchronized = true;
-                                break;
-                            case 0xc0: //conditional return
-                            case 0xd0:
-                            case 0xc8:
-                            case 0xd8:
-                                if ((uint16_t)history[(uint8_t)(cycleIndex+2)] == sp)
-                                    synchronized = true;
-                                break;
-                        }
-                        if (!synchronized) {
+                        if (*address == sp) {
+                            synchronized = true;
                             getNextFromBus();
-                            wait++;
-                            if (wait > 20) {
-                                stop("Could not find a ret after DMA.");
-                                break;
-                            }
+                            getNextFromBus();
+                            getNextFromBus();
+                            sp += 2;
+                            break;
+                        }
+                        getNextFromBus();
+                        wait++;
+                        if (wait > 20) {
+                            stop("Could not find a ret after DMA.");
+                            break;
                         }
                     }
                 }

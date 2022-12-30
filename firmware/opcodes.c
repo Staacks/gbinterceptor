@@ -75,12 +75,12 @@ void toMemory(uint16_t address, uint8_t data) {
     }
 }
 
-//Read from memory, memory substitutions are already done in getNextFromBus, so this is mostly an inline replacement for debugging and some special registers
+//Read from memory, memory substitutions are already done in getNextFromBus, but the DMG sometimes shows the wrong address on the bus if data is loaded from an address pointed to by a register.
 //The caller has to make sure to advance the bus to the relevant position before calling from memory if data from the cartridge is to be expected.
 
-uint8_t static inline fromMemory() {
+uint8_t static inline fromMemory(uint16_t addr) {
     DEBUG_TRIGGER_BREAKPOINT_AT_READ_FROM_ADDRESS
-    switch (*address) {
+    switch (addr) {
         case 0xff04: return *div; //DIV register
         case 0xff41:
                     //STAT register. Since this is usually only used for conditional jumps done in the real Game Boy, emulating the correct value is not ciritcally here.
@@ -112,7 +112,10 @@ uint8_t static inline fromMemory() {
                     syncReferenceCycle = cycleIndex;
                     return y;
     }
-    return *opcode;
+    if (*address != addr && ((addr & 0xe000) == 0x8000)) {
+        return memory[addr]; //Data from memory usually has already been replaced in the bus data, but unfortunately, the DMG shows the wrong address when reading from VRAM, so we get it from our RAM copy instead
+    }
+    return *opcode; //By default we fetch data from the address that the Game Boy fetches (which has been filled from our copy of memory if neccessary). The reason is that sometimes addresses are calculated from not exactly emulated registers (for example in Zelda) and this is obviously is the exact address
 }
 
 // Various forms of NOOP for opcodes that we do not need to track in detail //
@@ -201,7 +204,7 @@ GENERATE_ADD_A_R(a)
 
 void add_A_HL() {
     getNextFromBus();
-    uint8_t v = fromMemory();
+    uint8_t v = fromMemory(*hl);
     *N = 0;
     *H = (((*a & 0x0f) + (v & 0x0f)) >= 0x10);
     *C = (((uint16_t)(*a) + (uint16_t)v) >= 0x0100);
@@ -240,7 +243,7 @@ void adc_A_HL() {
     else
         cy = 0;
     getNextFromBus();
-    uint8_t v = fromMemory();
+    uint8_t v = fromMemory(*hl);
     *N = 0;
     *H = (((*a & 0x0f) + (v & 0x0f) + cy) >= 0x10);
     *C = (((uint16_t)(*a) + (uint16_t)v + cy) >= 0x0100);
@@ -311,7 +314,7 @@ GENERATE_AND_R(a)
 
 void and_HL() {
     getNextFromBus();
-    *a &= fromMemory();
+    *a &= fromMemory(*hl);
     flags = 0x00000100;
     *Z = (*a == 0);
     getNextFromBus();
@@ -335,8 +338,8 @@ void and_d8() {
 // CALL //
 
 void call6() {
-    toMemory(--sp, *address >> 8);
-    toMemory(--sp, *address);
+    toMemory(--sp, (*address+1) >> 8);
+    toMemory(--sp, (*address+1));
     getNextFromBus();
     getNextFromBus();
     getNextFromBus();
@@ -350,11 +353,11 @@ void call6() {
 }
 
 void call3_6() {
-    uint16_t addr = *address;
+    uint16_t addr = *address + 1;
     getNextFromBus();
     getNextFromBus();
     getNextFromBus();
-    if (addr + 3 != *address) {          //If these are equal, a jump was not taken but the next code was fetched.
+    if (addr + 2 != *address) {          //If these are equal, a jump was not taken but the next code was fetched.
          //If not equal, burn three more cycles and push to sp register
         toMemory(--sp, addr >> 8);
         toMemory(--sp, addr);
@@ -412,7 +415,7 @@ GENERATE_CP_R(a)
 
 void cp_HL() {
     getNextFromBus();
-    uint8_t v = fromMemory();
+    uint8_t v = fromMemory(*hl);
     *N = 1;
     *Z = (*a == v);
     *H = ((*a & 0x0f) < (v & 0x0f));
@@ -496,7 +499,7 @@ GENERATE_DEC_R(a)
 void dec_HL() {
     *N = 1;
     getNextFromBus();
-    uint8_t data = fromMemory()-1;
+    uint8_t data = fromMemory(*hl)-1;
     toMemory(*hl, data);
     *H = (data & 0x0f == 0x0f);
     *Z = (data == 0x00);
@@ -566,7 +569,7 @@ GENERATE_INC_R(a)
 void inc_HL() {
     *N = 0;
     getNextFromBus();
-    uint8_t data = fromMemory()+1;
+    uint8_t data = fromMemory(*hl)+1;
     toMemory(*hl, data);
     *H = (data & 0x0f == 0x00);
     *Z = (data == 0x00);
@@ -642,7 +645,7 @@ void ld_A_a8() {
     getNextFromBus();
     uint8_t a8 = *opcode;
     getNextFromBus();
-    *a = fromMemory();
+    *a = fromMemory(0xff00 | a8);
     getNextFromBus();
 }
 
@@ -656,7 +659,7 @@ void ld_a8_A() {
 
 void ld_A_aC() {
     getNextFromBus();
-    *a = fromMemory();
+    *a = fromMemory(0xff00 | *c);
     getNextFromBus();
 }
 
@@ -672,7 +675,7 @@ void ld_A_a16() {
     getNextFromBus();
     a16 |= ((rawBusData >> 8) & 0xff00);
     getNextFromBus();
-    *a = fromMemory();
+    *a = fromMemory(a16);
     getNextFromBus();
 }
 
@@ -730,15 +733,24 @@ void ld_mem_A() { //ld (bc) , A; ld (de), A; ld (hl+), A; ld (hl-), A
 
 void ld_A_mem() { //ld A, (bc); ld A, (de); ld A, (hl+); ld A, (hl-)
     switch (rawBusData & 0x00300000) {
+        case 0x00000000:
+            getNextFromBus();
+            *a = fromMemory(*bc);
+            break;
+        case 0x00100000:
+            getNextFromBus();
+            *a = fromMemory(*de);
+            break;
         case 0x00200000:
-            (*hl)++;
+            getNextFromBus();
+            *a = fromMemory((*hl)++);
             break;
         case 0x00300000:
-            (*hl)--;
+            getNextFromBus();
+            *a = fromMemory((*hl)--);
             break;
     }
-    getNextFromBus();
-    *a = fromMemory();
+    
     getNextFromBus();
 }
 
@@ -825,7 +837,7 @@ GENERATE_LD_R_R(a, a)
 #define GENERATE_LD_R_HL(REGISTER) \
 void ld_ ## REGISTER ## _HL() { \
     getNextFromBus(); \
-    *REGISTER = fromMemory(); \
+    *REGISTER = fromMemory(*hl); \
     getNextFromBus(); \
 }
 
@@ -902,7 +914,7 @@ GENERATE_OR_R(a)
 
 void or_HL() {
     getNextFromBus();
-    *a |= fromMemory();
+    *a |= fromMemory(*hl);
     flags = 0x00000000;
     *Z = (*a == 0);
     getNextFromBus();
@@ -926,10 +938,10 @@ void pop_r16() {
         running = false;
         error = "SP desynchronized.";
     }
-    uint16_t v = fromMemory();
+    uint16_t v = fromMemory(sp);
     sp++;
     getNextFromBus();
-    v |= ((uint16_t)fromMemory() << 8);
+    v |= ((uint16_t)fromMemory(sp) << 8);
     sp++;
     switch (whichOpcode) {
         case 0x00000000:
@@ -1072,8 +1084,8 @@ void rrca() {
 // RST //
 
 void rst() {
-    toMemory(--sp, *address >> 8);
-    toMemory(--sp, *address);
+    toMemory(--sp, (*address+1) >> 8);
+    toMemory(--sp, *address+1);
     getNextFromBus();
     getNextFromBus();
     getNextFromBus();
@@ -1138,7 +1150,7 @@ GENERATE_SUB_A_R(a)
 
 void sub_A_HL() {
     getNextFromBus();
-    uint8_t v = fromMemory();
+    uint8_t v = fromMemory(*hl);
     *N = 1;
     *H = ((*a & 0x0f) < (v & 0x0f));
     *C = (*a < v);
@@ -1177,7 +1189,7 @@ void sbc_A_HL() {
     else
         cy = 0;
     getNextFromBus();
-    uint8_t v = fromMemory();
+    uint8_t v = fromMemory(*hl);
     *N = 1;
     *H = ((*a & 0x0f) < (v & 0x0f) - cy);
     *C = (*a < v - cy);
@@ -1206,7 +1218,7 @@ GENERATE_XOR_R(a)
 
 void xor_HL() {
     getNextFromBus();
-    *a ^= fromMemory();
+    *a ^= fromMemory(*hl);
     flags = 0x00000000;
     *Z = (*a == 0);
     getNextFromBus();
@@ -1233,9 +1245,9 @@ void xCB() {
         if (i == 0x07) {
             getNextFromBus();
             if (opcode & 0x40) // SET bit, (HL)
-                toMemory(*hl, fromMemory() | (1 << bit));
+                toMemory(*hl, fromMemory(*hl) | (1 << bit));
             else                // RES bit, (HL)
-                toMemory(*hl, fromMemory() & ~(1 << bit));
+                toMemory(*hl, fromMemory(*hl) & ~(1 << bit));
             getNextFromBus();
         } else {
             if (opcode & 0x40) // SET bit, A
@@ -1252,7 +1264,7 @@ void xCB() {
         uint8_t v;
         if (i == 0x07) {
             getNextFromBus();
-            v = fromMemory();
+            v = fromMemory(*hl);
         } else {
             v = registers[i];
         }
@@ -1267,7 +1279,7 @@ void xCB() {
                 uint8_t i = (opcode & 0x07) ^ 0x01;
                 if (i == 0x07) {
                     getNextFromBus();
-                    uint8_t data = fromMemory();
+                    uint8_t data = fromMemory(*hl);
                     *C = (data & 0x01) != 0;
                     data >>= 1;
                     toMemory(*hl, data);
@@ -1284,7 +1296,7 @@ void xCB() {
                 uint8_t i = (opcode & 0x07) ^ 0x01;
                 if (i == 0x07) {
                     getNextFromBus();
-                    uint8_t data = fromMemory();
+                    uint8_t data = fromMemory(*hl);
                     toMemory(*hl, ((data >> 4) | (data << 4)));
                     *Z = (data & 0x01) == 0;
                     getNextFromBus();
@@ -1301,7 +1313,7 @@ void xCB() {
                 uint8_t i = (opcode & 0x07) ^ 0x01;
                 if (i == 0x07) {
                     getNextFromBus();
-                    uint8_t data = fromMemory();
+                    uint8_t data = fromMemory(*hl);
                     *C = (data & 0x01) != 0;
                     if (data & 0x80)
                         data = ((data >> 1) | 0x80);
@@ -1324,7 +1336,7 @@ void xCB() {
                 uint8_t i = (opcode & 0x07) ^ 0x01;
                 if (i == 0x07) {
                     getNextFromBus();
-                    uint8_t data = fromMemory();
+                    uint8_t data = fromMemory(*hl);
                     *C = (data & 0x80) != 0;
                     data <<= 1;
                     toMemory(*hl, data);
@@ -1348,7 +1360,7 @@ void xCB() {
                 *H = 0;
                 if (i == 0x07) {
                     getNextFromBus();
-                    uint8_t data = fromMemory();
+                    uint8_t data = fromMemory(*hl);
                     bool bit0 = ((data & 0x01) != 0);
                     data >>= 1;
                     if (*C)
@@ -1370,7 +1382,7 @@ void xCB() {
                 //RRC
                 if (i == 0x07) {
                     getNextFromBus();
-                    uint8_t data = fromMemory();
+                    uint8_t data = fromMemory(*hl);
                     *C = ((data & 0x01) != 0);
                     data >>= 1;
                     if (*C)
@@ -1395,7 +1407,7 @@ void xCB() {
                 *H = 0;
                 if (i == 0x07) {
                     getNextFromBus();
-                    uint8_t data = fromMemory();
+                    uint8_t data = fromMemory(*hl);
                     bool bit7 = ((data & 0x80) != 0);
                     data <<= 1;
                     if (*C)
@@ -1417,7 +1429,7 @@ void xCB() {
                 //RLC
                 if (i == 0x07) {
                     getNextFromBus();
-                    uint8_t data = fromMemory();
+                    uint8_t data = fromMemory(*hl);
                     *C = ((data & 0x80) != 0);
                     data <<= 1;
                     if (*C)

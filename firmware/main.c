@@ -128,7 +128,7 @@ void animateFallbackScreen() {
 }
 
 int main(void) {
-    set_sys_clock_khz(225000, true);
+    set_sys_clock_khz(250000, true);
 
     board_init();
     setupDMA();
