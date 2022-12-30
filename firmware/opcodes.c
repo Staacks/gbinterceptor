@@ -42,13 +42,16 @@ void toMemory(uint16_t address, uint8_t data) {
                 lcdAndPpuEnable = (data & 0x80) != 0;
                 break;
             case 0xff46: //OAM DMA transfer
-                if (data >= 0x80) {
+                if ((data & 0x80) != 0 && ((data & 0xe0) != 0xa0)) {
+                    //OAM from our RAM copy
                     dmaToOAM((uint16_t)(data) << 8);
-                    ignoreCycles = 160;
                 } else {
-                    error = "OAM DMA from cartridge not implemented.";
-                    running = false;
+                    //OAM from the cartridge (ROM or external RAM)
+                    cartridgeDMAsrc = (uint)(data) << 8;
+                    cartridgeDMAdst = 0xfe00;
+                    cartridgeDMA = true;
                 }
+                ignoreCycles = 161;
                 break;
             case 0xff47: //BG Palette
                 paletteBG[0] = ~((data & 0x03) * contrastFactor);

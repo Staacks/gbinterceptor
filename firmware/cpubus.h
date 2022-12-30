@@ -28,6 +28,9 @@ extern uint8_t volatile * historyIndex; //Index for history array, lowest byte o
 extern uint8_t volatile * div;
 
 extern uint ignoreCycles;
+extern bool cartridgeDMA;
+extern uint cartridgeDMAsrc;
+extern uint cartridgeDMAdst;
 
 extern mutex_t cpubusMutex;
 #define DUMPMORE 10 //Additional lines to dump after error

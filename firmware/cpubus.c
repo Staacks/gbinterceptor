@@ -44,8 +44,16 @@ uint delayedOpcodeCount = 0; //Counts the number of times we did not see a new c
 uint ignoreCycles; //(Remaining) number of cycles to ignore, typically during DMA. Will try to detect a ret instruction to find back.
 
 uint8_t volatile memory[0x010000]; //We are actually only interested in 0x8000 to 0xffff in the Game Boy's address space. We don't care about the cartridge, because we get fresh data from the real one whenever the Game Boy reads it. However, wasting 32kB here by reserving this for the rare cases of writing to a cartridge, allows us to do all other memory writes without a range check.
+
+//DMA from memory
 int oamDmaChannel;
 dma_channel_config oamDmaConfig;
+
+//DMA from cartridge
+bool cartridgeDMA = false;
+uint cartridgeDMAsrc;
+uint cartridgeDMAdst;
+
 
 //CPU registers
 uint8_t registers[8];        // The rp2040 is little endian! So we need to swap registers in memory if we want to access them with a pointer like *bc and *b
@@ -130,6 +138,8 @@ void reset() {
 
     interruptsEnabled = false;
     interruptsEnableCycle = 0;
+
+    cartridgeDMA = false;
 
     toMemory(0xff04, 0xab);
     toMemory(0xff05, 0x00);
@@ -250,6 +260,13 @@ void handleMemoryBus() { //To be executed on second core
             //Ignore events during DMA
             while (ignoreCycles) {
                 getNextFromBus();
+                if (cartridgeDMA && *address == cartridgeDMAsrc) {
+                    memory[cartridgeDMAdst] = *opcode;
+                    cartridgeDMAsrc++;
+                    cartridgeDMAdst++;
+                    if (cartridgeDMAdst >= 0xfea0)
+                        cartridgeDMA = false;
+                }
                 ignoreCycles--;
                 if (ignoreCycles == 0) { //We are done, but we now have to look for a return instruction to sync back up with the CPU which was doing unknown instructions during DMA
                     bool synchronized = false;
