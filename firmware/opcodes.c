@@ -420,6 +420,19 @@ void cp_HL() {
     *Z = (*a == v);
     *H = ((*a & 0x0f) < (v & 0x0f));
     *C = (*a < v);
+    if (syncArmed) { \
+        if (statSyncStage == 2) {
+            if (*a == 0x01) {
+                setOffsetToLine(144);
+                statSyncStage = 3;
+            } else
+                syncArmed = false;
+        } else if (lySyncStage == 1) {
+            setOffsetToLine(*a);
+            lySyncStage = 2;
+        } else
+            syncArmed = false;
+    }
     getNextFromBus();
 }
 
