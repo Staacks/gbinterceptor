@@ -25,7 +25,25 @@ Also check out the compatibility tables for host software (for example OBS) and 
 
 There is an [order and build video](https://youtu.be/Lg92tVkEE98) to guide you through the build process which I highly recommend, especially if you are not used to ordering PCBs. A [written guide can be found in this repository's wiki](https://github.com/Staacks/gbinterceptor/wiki/Build-guide).
 
+# Usage
 
+Simply plug the Interceptor into your Game Boy and the Game into the Interceptor. Connect the Interceptor to your computer before turning on the Game Boy. It should show up as a webcam in any software that supports USB Video devices (for example OBS Studio). Note that some software is not entirely happy with the exotic format, but it should work in most cases (see [Host software compatibility](https://github.com/Staacks/gbinterceptor/wiki/Host-software-compatibility)).
+
+Then just turn on the Game Boy and play.
+
+Note that you do not need to open the video stream first. The only important step is that the Interceptor is powered via USB before the Game Boy is turned on.
+
+## Buttons
+
+The [Mode] button (next to the LEDs) allows to switch between grayscale/green colors and toggle frame blending. Each press switches colors and frame blending is toggled each time it returns to grayscale.
+
+The [Flash] button (near the center, usually inside the case) is only used to flash a new firmware version. Simply hold it while plugging in the USB cable. The Interceptor should appear as a storage device (like a USB stick) and you can simply drag the new firmware file (a uf2 file) into it.
+
+## LEDs
+
+The red LED indicates that the Interceptor is powered.
+
+The blue LED stays on as long as the Interceptor is in sync with the game. (It may shortly turn off for a fraction of a second when the Game Boy turns the display off, i.e. when loading a level.)
 
 # Support
 
@@ -33,7 +51,7 @@ While I do not give any guarantees I (and probably others too) am happy to help 
 
 If you are having difficulties to order, build or use your Interceptor, please do not contact me directly but use [r/thereoughtabe on reddit](https://www.reddit.com/r/thereoughtabe/) as this allows others to help and the answer might help others, too.
 
-If you found a bug and in particular if you find glitches in a game, please open an issue here on Github.
+If you found a bug and in particular if you find glitches in a game, please check the [compatibility lists](https://github.com/Staacks/gbinterceptor/wiki) in the Wiki first to see if it is a known problem and open an issue here on Github otherwise.
 
 # Building the firmware
 
