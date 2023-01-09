@@ -29,7 +29,7 @@ void toMemory(uint16_t address, uint8_t data) {
     if (address >= 0xff00) {
         switch (address) {
             case 0xff04: //Reset DIV register
-                *div = 0;
+                div = cycleIndex;
                 break;
             case 0xff40: //LCDC
                 bgAndWindowDisplay = (data & 0x01) != 0;
@@ -81,7 +81,7 @@ void toMemory(uint16_t address, uint8_t data) {
 uint8_t static inline fromMemory(uint16_t addr) {
     DEBUG_TRIGGER_BREAKPOINT_AT_READ_FROM_ADDRESS
     switch (addr) {
-        case 0xff04: return *div; //DIV register
+        case 0xff04: return (uint8_t)((uint)(cycleIndex - div) >> 8); //DIV register
         case 0xff41:
                     //STAT register. Since this is usually only used for conditional jumps done in the real Game Boy, emulating the correct value is not ciritcally here.
                     //Instead we use it to synchronize our PPU to the real one:
@@ -346,8 +346,7 @@ void call6() {
     getNextFromBus();
     getNextFromBus();
     if (*address != sp) {
-        running = false;
-        error = "SP desynchronized.";
+        stop("SP desynchronized.");
     }
     getNextFromBus();
 }
@@ -364,8 +363,7 @@ void call3_6() {
         getNextFromBus();                 
         getNextFromBus();
         if (*address != sp) {
-            running = false;
-            error = "SP desynchronized.";
+            stop("SP desynchronized.");
         }
         getNextFromBus();
     }
@@ -948,8 +946,7 @@ void pop_r16() {
     uint32_t whichOpcode = rawBusData & 0x00300000;
     getNextFromBus();
     if (*address != sp) {
-        running = false;
-        error = "SP desynchronized.";
+        stop("SP desynchronized.");
     }
     uint16_t v = fromMemory(sp);
     sp++;
@@ -1001,8 +998,7 @@ void push_r16() {
     getNextFromBus();
     getNextFromBus();
     if (*address != sp) {
-        running = false;
-        error = "SP desynchronized.";
+        stop("SP desynchronized.");
     }
     getNextFromBus();
 }
@@ -1012,8 +1008,7 @@ void push_r16() {
 void ret4() {
     getNextFromBus();
     if (*address != sp) {
-        running = false;
-        error = "SP desynchronized.";
+        stop("SP desynchronized.");
     }
     getNextFromBus();
     getNextFromBus();
@@ -1024,8 +1019,7 @@ void ret4() {
 void reti4() {
     getNextFromBus();
     if (*address != sp) {
-        running = false;
-        error = "SP desynchronized.";
+        stop("SP desynchronized.");
     }
     getNextFromBus();
     getNextFromBus();
@@ -1042,8 +1036,7 @@ void ret2_5() {
     if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
         //If not equal, burn three more cycles and pop the sp register.
         if (*address != sp) {
-            running = false;
-            error = "SP desynchronized.";
+            stop("SP desynchronized.");
         }
         getNextFromBus();
         getNextFromBus();
@@ -1466,9 +1459,8 @@ void xCB() {
 // UNKNOWN / ERROR STATE //
 
 void unknown() {
-    error = "Unknown opcode.";
+    stop("Unknown opcode.");
     errorOpcode = *opcode;
-    running = false;
 }
 
 void (*opcodes[256])() = {

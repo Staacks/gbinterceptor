@@ -25,7 +25,7 @@ extern uint8_t volatile * extra;
 extern uint32_t history[];
 extern uint volatile cycleIndex;
 extern uint8_t volatile * historyIndex; //Index for history array, lowest byte of cycleIndex
-extern uint8_t volatile * div;
+extern uint volatile div;
 
 extern uint ignoreCycles;
 extern bool cartridgeDMA;
@@ -65,5 +65,7 @@ void handleMemoryBus();
 void getNextFromBus();
 
 void dmaToOAM(uint16_t source);
+
+void stop(const char* errorMsg);
 
 #endif
