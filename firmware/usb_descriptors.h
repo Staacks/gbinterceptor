@@ -10,7 +10,8 @@
 #define FRAME_WIDTH 160
 #define FRAME_HEIGHT 144
 #define FRAME_RATE 29
-#define FRAME_INTERVALL_US (1000000/FRAME_RATE)
+#define FRAME_RATE_STEP 100 //Number of steps into which the interval of FRAME_RATE should be divided to offer fine grain selection (note that this refers to the interval, hence the fps options are not evenly divided by this)
+#define FRAME_RATE_STEP_INTERVAL (10000000/FRAME_RATE/FRAME_RATE_STEP)
 //We are close to the limit for isochronous transfer for the rp2040
 //Max endpoint buffer size is 1023 B
 //Full Game Boy resolution at 30 fps and 12bit NV12 (Windows support) requires
@@ -43,7 +44,7 @@ enum {
 #define TUD_VIDEO_DESC_CS_VS_FMT_I420(_fmtidx, _numfmtdesc, _frmidx, _asrx, _asry, _interlace, _cp) \
     TUD_VIDEO_DESC_CS_VS_FMT_UNCOMPR(_fmtidx, _numfmtdesc, TUD_VIDEO_GUID_I420, 12, _frmidx, _asrx, _asry, _interlace, _cp)
 
-#define TUD_VIDEO_CAPTURE_DESCRIPTOR(_stridx, _epin, _width, _height, _fps, _epsize)                                                                           \
+#define TUD_VIDEO_CAPTURE_DESCRIPTOR(_stridx, _epin, _width, _height, _fps, _fps_step, _fps_step_interval, _epsize)                                                                           \
     TUD_VIDEO_DESC_IAD(ITF_NUM_VIDEO_CONTROL, /* 2 Interfaces */ 0x02, _stridx), /* Video control 0 */                                                         \
         TUD_VIDEO_DESC_STD_VC(ITF_NUM_VIDEO_CONTROL, 0, _stridx),                                                                                              \
         TUD_VIDEO_DESC_CS_VC(/* UVC 1.5*/ 0x0150, /* wTotalLength - bLength */                                                                                 \
@@ -64,7 +65,10 @@ enum {
         TUD_VIDEO_DESC_CS_VS_FRM_UNCOMPR_CONT(/*bFrameIndex */ 1, 0, _width, _height,                                                                          \
                                               _width *_height * 12, _width * _height * 12 * _fps,                                                              \
                                               _width * _height * 12 / 8,                                                                                       \
-                                              (10000000 / _fps), (10000000 / _fps), (10000000 / _fps) * _fps, 1),                              \
+                                              _fps_step_interval*_fps_step,         /*Frame interval = FRAME_RATE rounded to multiple of interval step*/       \
+                                              _fps_step_interval*_fps_step,         /*Min frame interval = FRAME_RATE rounded to multiple of interval step*/   \
+                                              _fps_step_interval*_fps_step*_fps,    /*Max frame interval = 1fps rounded to multiple of interval step*/         \
+                                              _fps_step_interval),                  /*Frame interval step = 0.1fps*/                                           \
         TUD_VIDEO_DESC_CS_VS_COLOR_MATCHING(VIDEO_COLOR_PRIMARIES_BT709, VIDEO_COLOR_XFER_CH_BT709, VIDEO_COLOR_COEF_SMPTE170M), /* VS alt 1 */                \
         TUD_VIDEO_DESC_STD_VS(ITF_NUM_VIDEO_STREAMING, 1, 1, _stridx),                                                           /* EP */                      \
         TUD_VIDEO_DESC_EP_ISO(_epin, _epsize, 1)

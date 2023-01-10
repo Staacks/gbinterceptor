@@ -61,7 +61,7 @@ uint8_t const desc_fs_configuration[] = {
   TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, CONFIG_TOTAL_LEN, 0, 500),
   // IAD for Video Control
   TUD_VIDEO_CAPTURE_DESCRIPTOR(4, EPNUM_VIDEO_IN,
-                               FRAME_WIDTH, FRAME_HEIGHT, FRAME_RATE,
+                               FRAME_WIDTH, FRAME_HEIGHT, FRAME_RATE, FRAME_RATE_STEP, FRAME_RATE_STEP_INTERVAL,
                                CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE),
   // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
   TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
