@@ -345,7 +345,7 @@ void call6() {
     getNextFromBus();
     getNextFromBus();
     getNextFromBus();
-    if (*address != sp) {
+    if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
         stop("SP desynchronized.");
     }
     getNextFromBus();
@@ -362,7 +362,7 @@ void call3_6() {
         toMemory(--sp, addr);
         getNextFromBus();                 
         getNextFromBus();
-        if (*address != sp) {
+        if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
             stop("SP desynchronized.");
         }
         getNextFromBus();
@@ -945,7 +945,7 @@ void or_d8() {
 void pop_r16() {
     uint32_t whichOpcode = rawBusData & 0x00300000;
     getNextFromBus();
-    if (*address != sp) {
+    if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
         stop("SP desynchronized.");
     }
     uint16_t v = fromMemory(sp);
@@ -997,7 +997,7 @@ void push_r16() {
     getNextFromBus();
     getNextFromBus();
     getNextFromBus();
-    if (*address != sp) {
+    if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
         stop("SP desynchronized.");
     }
     getNextFromBus();
@@ -1007,7 +1007,7 @@ void push_r16() {
 
 void ret4() {
     getNextFromBus();
-    if (*address != sp) {
+    if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
         stop("SP desynchronized.");
     }
     getNextFromBus();
@@ -1018,7 +1018,7 @@ void ret4() {
 
 void reti4() {
     getNextFromBus();
-    if (*address != sp) {
+    if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
         stop("SP desynchronized.");
     }
     getNextFromBus();
@@ -1035,7 +1035,7 @@ void ret2_5() {
     getNextFromBus();
     if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
         //If not equal, burn three more cycles and pop the sp register.
-        if (*address != sp) {
+        if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
             stop("SP desynchronized.");
         }
         getNextFromBus();
