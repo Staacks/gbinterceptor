@@ -554,7 +554,7 @@ void ei() {
 
 void halt() {
     getNextFromBus();
-    if ((uint16_t)history[*historyIndex+1] == *address) //We often see the next command twice. If the clock is actually suspended, getNextFromBus deals with this issue, but if the halt is too short or not even executed, we need to get rid of the duplicate here. There is no reason to repeat the address for an opcode, so it is save to remove it here.
+    if ((uint16_t)history[(uint8_t)(*historyIndex+1)] == *address) //We often see the next command twice. If the clock is actually suspended, getNextFromBus deals with this issue, but if the halt is too short or not even executed, we need to get rid of the duplicate here. There is no reason to repeat the address for an opcode, so it is save to remove it here.
         getNextFromBus();
 }
 
