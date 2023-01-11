@@ -171,6 +171,7 @@ int main(void) {
             #else
                 uint steps = (uint)(cycleIndex - lastCycle);
                 lastCycle += steps;
+                DEBUG_MARK_VBLANK_ADJUST
                 int adjust = vblankOffset; //We work with a copy as another thread may change this at any time
                 if (adjust >= 0) {
                     if (adjust > 10) //Limit the amount of catching up per step to avoid to unpleasant results

@@ -117,6 +117,11 @@ void printPPUTiming();
         ppuTiming[y][3] = lineCycle; \
     }
 
+#define DEBUG_MARK_VBLANK_ADJUST \
+    if (recordPPUTiming) { \
+        ppuTimingEvents.vblankOffset = vblankOffset; \
+    }
+
 #else
 
 #define DEBUG_MARK_YRESET
@@ -124,6 +129,7 @@ void printPPUTiming();
 #define DEBUG_MARK_OAMSEARCHSTOP
 #define DEBUG_MARK_RENDERSTART
 #define DEBUG_MARK_RENDERSTOP
+#define DEBUG_MARK_VBLANK_ADJUST
 
 #endif
 

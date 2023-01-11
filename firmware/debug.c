@@ -131,7 +131,7 @@ void printPPUTiming() {
         printf("|% 4d |% 4d ..% 4d |% 4d ..% 4d |\n", line, ppuTiming[line][0], ppuTiming[line][1], ppuTiming[line][2], ppuTiming[line][3]);
     }
     printf(" ===============================\n");
-    printf("Frame: %d .. %d => %d (Should be %d)\n\n", ppuTimingEvents.frameStartCycle, ppuTimingEvents.frameEndCycle, ppuTimingEvents.frameEndCycle - ppuTimingEvents.frameStartCycle, CYCLES_PER_FRAME);
+    printf("Frame: %d .. %d => %d (Should be %d), vblank adjusted by %d\n\n", ppuTimingEvents.frameStartCycle, ppuTimingEvents.frameEndCycle, ppuTimingEvents.frameEndCycle - ppuTimingEvents.frameStartCycle, CYCLES_PER_FRAME, ppuTimingEvents.vblankOffset);
 }
 
 #endif
