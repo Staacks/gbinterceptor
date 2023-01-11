@@ -6,6 +6,8 @@
 #include "hardware/interp.h"
 #include <stdio.h>
 
+#include "font/font8x8_basic.h"
+
 uint8_t buffer1[FRAME_SIZE];
 uint8_t buffer2[FRAME_SIZE];
 uint8_t buffer3[SCREEN_SIZE];
@@ -19,8 +21,13 @@ uint32_t * backIterator = NULL;
 uint32_t * backEnd = NULL;
 
 bool dmgColorMode = false;
-bool frameBlending = true;
+bool frameBlending = false;
 uint8_t contrastFactor;
+
+//On-screen display (text) state
+struct OnScreenDisplayText modeInfo; //Info when mode button is pressed
+uint modeInfoTimeLeft = 0;
+#define MODE_INFO_DURATION 50; //Duration of the mode info in frames
 
 uint lineCycle = 0;
 int x = 0;
@@ -95,6 +102,11 @@ void setBufferUVColors() {
 }
 
 void ppuInit() {
+    modeInfoTimeLeft = 0;
+    modeInfo.x = 10;
+    modeInfo.y = 10;
+    modeInfo.width = 0;
+
     //Fill UV part of NV12 encoding with gray
     setBufferUVColors();
 
@@ -103,6 +115,16 @@ void ppuInit() {
     interp_set_config(interp0, 1, &cfgUnmasked0);
     interp_set_config(interp1, 0, &cfgMasked1);
     interp_set_config(interp1, 1, &cfgUnmasked1);
+}
+
+void switchRenderMode() {
+    if (dmgColorMode) {
+        dmgColorMode = false;
+        frameBlending = !frameBlending;
+        modeInfo.text = frameBlending ? "Blending ON" : "Blending OFF";
+        modeInfoTimeLeft = MODE_INFO_DURATION;
+    } else
+        dmgColorMode = true;
 }
 
 void renderBGTiles() {
@@ -238,10 +260,82 @@ void oamSearch() {
     }
 }
 
+void inline renderOSDCharacter(char i, uint x, uint y) {
+    for (uint yi = 0; yi < 8; yi++) {
+        char line = font8x8_basic[i][yi];
+        uint8_t volatile * bufferindex = backBuffer + (y + yi) * SCREEN_W + x;
+        uint8_t mask = 0x01;
+        for (uint xi = 0; xi < 8; xi++) {
+            if (line & mask)
+                *bufferindex = 0xff;
+            else
+                *bufferindex = 0x00;
+            mask <<= 1;
+            bufferindex++;
+        }
+    }
+}
+
+void renderOSDFillLine(uint fromX, uint toX, uint y0) {
+    uint8_t volatile * bufferindex = backBuffer + y0 * SCREEN_W + fromX;
+    for (uint y = y0; y < y0 + 8; y++) {
+        for (uint x = fromX; x < toX; x++) {
+            *bufferindex = 0x00;
+            bufferindex++;
+        }
+        bufferindex += SCREEN_W - toX + fromX;
+    }
+}
+
+void renderOSD(struct OnScreenDisplayText osd) {
+    char *i = osd.text;
+    uint x = osd.x+1;
+    uint y = osd.y+1;
+    uint maxx = x + osd.width * 8;
+    while (*i != '\0') {
+        if (*i == '\n') {
+            if (x < maxx)
+                renderOSDFillLine(x, maxx, y);
+            x = osd.x;
+            y += 8;
+        } else {
+            renderOSDCharacter(*i, x, y);
+            x += 8;
+        }
+        if (x > maxx)
+            maxx = x;
+        *i++;
+    }
+    if (x < maxx)
+        renderOSDFillLine(x, maxx, y);
+
+    //Padding
+    uint8_t volatile * topborder = backBuffer + (osd.y) * SCREEN_W + osd.x+1;
+    uint8_t volatile * bottomborder = backBuffer + (y + 8) * SCREEN_W + osd.x+1;
+    uint8_t volatile * leftborder = backBuffer + (osd.y+1) * SCREEN_W + osd.x;
+    uint8_t volatile * rightborder = backBuffer + (osd.y+1) * SCREEN_W + maxx;
+    for (uint i = osd.x; i < maxx; i++) {
+        *topborder = 0x00;
+        *bottomborder = 0x00;
+        topborder++;
+        bottomborder++;
+    }
+    for (uint i = osd.y; i < y+8; i++) {
+        *leftborder = 0x00;
+        *rightborder = 0x00;
+        leftborder += SCREEN_W;
+        rightborder += SCREEN_W;
+    }
+}
+
 void inline startBackbufferBlend() {
+    if (modeInfoTimeLeft > 0) {
+        renderOSD(modeInfo);
+        modeInfoTimeLeft--;
+    }
     readyIterator = (uint32_t *) readyBuffer;
     backIterator = (uint32_t *) backBuffer;
-    backEnd = backIterator + SCREEN_SIZE / 4; //faster 32bit steps        
+    backEnd = backIterator + SCREEN_SIZE / 4; //faster 32bit steps    
 }
 
 void inline continueBackbufferBlend() {
@@ -255,7 +349,7 @@ void inline continueBackbufferBlend() {
             backIterator++;
         }
         if (backIterator == backEnd)
-                readyBufferIsNew = true;
+            readyBufferIsNew = true;
     }
 }
 

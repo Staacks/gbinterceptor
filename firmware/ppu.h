@@ -28,6 +28,7 @@
 #define CYCLES_LATEST_HBLANK (CYCLES_PER_LINE - 21) //At that point we are certainly in hblank
 #define LINES 154
 
+void switchRenderMode();
 void startBackbufferBlend();
 void continueBackbufferBlend();
 void swapFrontbuffer();
@@ -38,8 +39,6 @@ void ppuStep(uint advance);
 extern uint8_t volatile * frontBuffer;
 extern uint8_t volatile * backBuffer;
 
-extern bool dmgColorMode;
-extern bool frameBlending;
 extern uint8_t contrastFactor;
 
 enum RenderState {done = 0, start, oamSearchDone, rendering};  
@@ -69,5 +68,11 @@ struct __attribute__((__packed__)) SpriteAttribute {
 	uint8_t tileIndex;
 	uint8_t attributes;
 };
- 
+
+struct OnScreenDisplayText {
+	uint x, y;  //Position
+	uint width; //Minimal width in characters, needs to be larger than widest line for multiline text, for single line text it may be zero to fit the actual text
+	char *text; //Pointer to the text
+};
+
 #endif

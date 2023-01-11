@@ -55,11 +55,7 @@ void checkModeSwitch() {
         if (!modeButtonDebounce) {
             modeButtonDebounce = true;
             //Button pressed, switch mode
-            if (dmgColorMode) {
-                dmgColorMode = false;
-                frameBlending = !frameBlending;
-            } else
-                dmgColorMode = true;
+            switchRenderMode();
             setBufferUVColors();
         }
     } else if (modeButtonDebounce) {
