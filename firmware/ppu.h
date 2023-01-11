@@ -74,5 +74,7 @@ struct OnScreenDisplayText {
 	uint width; //Minimal width in characters, needs to be larger than widest line for multiline text, for single line text it may be zero to fit the actual text
 	char *text; //Pointer to the text
 };
+void renderOSD(struct OnScreenDisplayText osd, volatile uint8_t * targetBuffer, uint8_t fgColor, uint8_t bgColor);
+
 
 #endif

@@ -260,34 +260,34 @@ void oamSearch() {
     }
 }
 
-void inline renderOSDCharacter(char i, uint x, uint y) {
+void inline renderOSDCharacter(char i, uint x, uint y, volatile uint8_t * targetBuffer, uint8_t fgColor, uint8_t bgColor) {
     for (uint yi = 0; yi < 8; yi++) {
         char line = font8x8_basic[i][yi];
-        uint8_t volatile * bufferindex = backBuffer + (y + yi) * SCREEN_W + x;
+        uint8_t volatile * bufferindex = targetBuffer + (y + yi) * SCREEN_W + x;
         uint8_t mask = 0x01;
         for (uint xi = 0; xi < 8; xi++) {
             if (line & mask)
-                *bufferindex = 0xff;
+                *bufferindex = fgColor;
             else
-                *bufferindex = 0x00;
+                *bufferindex = bgColor;
             mask <<= 1;
             bufferindex++;
         }
     }
 }
 
-void renderOSDFillLine(uint fromX, uint toX, uint y0) {
-    uint8_t volatile * bufferindex = backBuffer + y0 * SCREEN_W + fromX;
+void renderOSDFillLine(uint fromX, uint toX, uint y0, volatile uint8_t * targetBuffer, uint8_t color) {
+    uint8_t volatile * bufferindex = targetBuffer + y0 * SCREEN_W + fromX;
     for (uint y = y0; y < y0 + 8; y++) {
         for (uint x = fromX; x < toX; x++) {
-            *bufferindex = 0x00;
+            *bufferindex = color;
             bufferindex++;
         }
         bufferindex += SCREEN_W - toX + fromX;
     }
 }
 
-void renderOSD(struct OnScreenDisplayText osd) {
+void renderOSD(struct OnScreenDisplayText osd, volatile uint8_t * targetBuffer, uint8_t fgColor, uint8_t bgColor) {
     char *i = osd.text;
     uint x = osd.x+1;
     uint y = osd.y+1;
@@ -295,11 +295,11 @@ void renderOSD(struct OnScreenDisplayText osd) {
     while (*i != '\0') {
         if (*i == '\n') {
             if (x < maxx)
-                renderOSDFillLine(x, maxx, y);
+                renderOSDFillLine(x, maxx, y, targetBuffer, bgColor);
             x = osd.x;
             y += 8;
         } else {
-            renderOSDCharacter(*i, x, y);
+            renderOSDCharacter(*i, x, y, targetBuffer, fgColor, bgColor);
             x += 8;
         }
         if (x > maxx)
@@ -307,22 +307,22 @@ void renderOSD(struct OnScreenDisplayText osd) {
         *i++;
     }
     if (x < maxx)
-        renderOSDFillLine(x, maxx, y);
+        renderOSDFillLine(x, maxx, y, targetBuffer, bgColor);
 
     //Padding
-    uint8_t volatile * topborder = backBuffer + (osd.y) * SCREEN_W + osd.x+1;
-    uint8_t volatile * bottomborder = backBuffer + (y + 8) * SCREEN_W + osd.x+1;
-    uint8_t volatile * leftborder = backBuffer + (osd.y+1) * SCREEN_W + osd.x;
-    uint8_t volatile * rightborder = backBuffer + (osd.y+1) * SCREEN_W + maxx;
+    uint8_t volatile * topborder = targetBuffer + (osd.y) * SCREEN_W + osd.x+1;
+    uint8_t volatile * bottomborder = targetBuffer + (y + 8) * SCREEN_W + osd.x+1;
+    uint8_t volatile * leftborder = targetBuffer + (osd.y+1) * SCREEN_W + osd.x;
+    uint8_t volatile * rightborder = targetBuffer + (osd.y+1) * SCREEN_W + maxx;
     for (uint i = osd.x; i < maxx; i++) {
-        *topborder = 0x00;
-        *bottomborder = 0x00;
+        *topborder = bgColor;
+        *bottomborder = bgColor;
         topborder++;
         bottomborder++;
     }
     for (uint i = osd.y; i < y+8; i++) {
-        *leftborder = 0x00;
-        *rightborder = 0x00;
+        *leftborder = bgColor;
+        *rightborder = bgColor;
         leftborder += SCREEN_W;
         rightborder += SCREEN_W;
     }
@@ -330,7 +330,7 @@ void renderOSD(struct OnScreenDisplayText osd) {
 
 void inline startBackbufferBlend() {
     if (modeInfoTimeLeft > 0) {
-        renderOSD(modeInfo);
+        renderOSD(modeInfo, backBuffer, 0xff, 0x00);
         modeInfoTimeLeft--;
     }
     readyIterator = (uint32_t *) readyBuffer;

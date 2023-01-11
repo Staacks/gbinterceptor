@@ -27,9 +27,10 @@ bool modeButtonDebounce = true;
 uint fallbackFrameIndex = 0;
 enum FallbackScreenType {FST_NONE = 0, FST_DEFAULT, FST_OFF, FST_ERROR} fallbackScreenType = FST_NONE;  
 
-
 int dmaChannel;
 dma_channel_config dmaConfig;
+
+struct OnScreenDisplayText versionInfo = {.text = VERSION, .width = 0, .x = SCREEN_W-(sizeof(VERSION)-1)*8, .y = 0};
 
 void setupGPIO() {
     gpio_init(GBSENSE_PIN);
@@ -120,6 +121,7 @@ void animateFallbackScreen() {
         frontBuffer[SCREEN_SIZE+64*SCREEN_W/2+i] = x;
         frontBuffer[SCREEN_SIZE+64*SCREEN_W/2+i+1] = y;
     }
+    renderOSD(versionInfo, frontBuffer, 0x00, 0xff);
     fallbackFrameIndex++;
 }
 
