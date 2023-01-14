@@ -14,6 +14,7 @@
 #include "hardware/structs/systick.h"
 
 uint32_t cycleRatio; //Ratio of rp2040 cycles to Game Boy cycles.
+#define CYCLE_RATIO_STATISTIC_SKIP 250 //How many cycles to skip before building the statistic
 #define CYCLE_RATIO_STATISTIC_SIZE 1000 //How many cycles to capture as a statistic for cycleRatio
 
 PIO busPIO;
@@ -231,7 +232,7 @@ void handleMemoryBus() { //To be executed on second core
         reset();
 
         //Wait for game to actually start and use this to determine the cycleRatio
-        uint leadIn = 100; //Skip first cycles in case something funny triggered a few extras while turning on.
+        uint leadIn = CYCLE_RATIO_STATISTIC_SKIP; //Skip first cycles in case something funny triggered a few extras while turning on.
         uint count = CYCLE_RATIO_STATISTIC_SIZE;
         systick_hw->rvr = 0x00FFFFFF;
         systick_hw->csr = 0x4;
