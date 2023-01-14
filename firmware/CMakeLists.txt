@@ -23,6 +23,8 @@ target_link_libraries(gb_interceptor PUBLIC pico_stdlib hardware_pio pico_multic
 
 target_include_directories(gb_interceptor PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
+target_compile_definitions(gb_interceptor PUBLIC PICO_XOSC_STARTUP_DELAY_MULTIPLIER=64)
+
 pico_add_extra_outputs(gb_interceptor)
 
 pico_enable_stdio_usb(gb_interceptor 1)
