@@ -28,6 +28,7 @@
 #define CYCLES_LATEST_HBLANK (CYCLES_PER_LINE - 21) //At that point we are certainly in hblank
 #define LINES 154
 
+void showGameDetectedInfo(const char * title);
 void switchRenderMode();
 void startBackbufferBlend();
 void continueBackbufferBlend();
@@ -72,7 +73,7 @@ struct __attribute__((__packed__)) SpriteAttribute {
 struct OnScreenDisplayText {
 	uint x, y;  //Position
 	uint width; //Minimal width in characters, needs to be larger than widest line for multiline text, for single line text it may be zero to fit the actual text
-	char *text; //Pointer to the text
+	const char * text; //Pointer to the text
 };
 void renderOSD(struct OnScreenDisplayText osd, volatile uint8_t * targetBuffer, uint8_t fgColor, uint8_t bgColor);
 

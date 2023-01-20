@@ -28,6 +28,9 @@ uint8_t contrastFactor;
 struct OnScreenDisplayText modeInfo; //Info when mode button is pressed
 uint modeInfoTimeLeft = 0;
 #define MODE_INFO_DURATION 50; //Duration of the mode info in frames
+struct OnScreenDisplayText gameDetectedInfo; //Info when the game has been detected
+uint gameDetectedInfoTimeLeft = 0;
+#define GAME_DETECTED_INFO_DURATION 100; //Duration of the mode info in frames
 
 uint lineCycle = 0;
 int x = 0;
@@ -107,6 +110,11 @@ void ppuInit() {
     modeInfo.y = 10;
     modeInfo.width = 0;
 
+    gameDetectedInfoTimeLeft = 0;
+    gameDetectedInfo.x = 3;
+    gameDetectedInfo.y = 132;
+    gameDetectedInfo.width = 0;
+
     //Fill UV part of NV12 encoding with gray
     setBufferUVColors();
 
@@ -115,6 +123,11 @@ void ppuInit() {
     interp_set_config(interp0, 1, &cfgUnmasked0);
     interp_set_config(interp1, 0, &cfgMasked1);
     interp_set_config(interp1, 1, &cfgUnmasked1);
+}
+
+void showGameDetectedInfo(const char * title) {
+    gameDetectedInfoTimeLeft = GAME_DETECTED_INFO_DURATION;
+    gameDetectedInfo.text = title;
 }
 
 void switchRenderMode() {
@@ -288,7 +301,7 @@ void renderOSDFillLine(uint fromX, uint toX, uint y0, volatile uint8_t * targetB
 }
 
 void renderOSD(struct OnScreenDisplayText osd, volatile uint8_t * targetBuffer, uint8_t fgColor, uint8_t bgColor) {
-    char *i = osd.text;
+    const char *i = osd.text;
     uint x = osd.x+1;
     uint y = osd.y+1;
     uint maxx = x + osd.width * 8;
@@ -314,13 +327,13 @@ void renderOSD(struct OnScreenDisplayText osd, volatile uint8_t * targetBuffer, 
     uint8_t volatile * bottomborder = targetBuffer + (y + 8) * SCREEN_W + osd.x+1;
     uint8_t volatile * leftborder = targetBuffer + (osd.y+1) * SCREEN_W + osd.x;
     uint8_t volatile * rightborder = targetBuffer + (osd.y+1) * SCREEN_W + maxx;
-    for (uint i = osd.x; i < maxx; i++) {
+    for (uint i = osd.x; i < maxx - 1; i++) {
         *topborder = bgColor;
         *bottomborder = bgColor;
         topborder++;
         bottomborder++;
     }
-    for (uint i = osd.y; i < y+8; i++) {
+    for (uint i = osd.y; i < y+7; i++) {
         *leftborder = bgColor;
         *rightborder = bgColor;
         leftborder += SCREEN_W;
@@ -332,6 +345,10 @@ void inline startBackbufferBlend() {
     if (modeInfoTimeLeft > 0) {
         renderOSD(modeInfo, backBuffer, 0xff, 0x00);
         modeInfoTimeLeft--;
+    }
+    if (gameDetectedInfoTimeLeft > 0) {
+        renderOSD(gameDetectedInfo, backBuffer, 0x00, 0xff);
+        gameDetectedInfoTimeLeft--;
     }
     readyIterator = (uint32_t *) readyBuffer;
     backIterator = (uint32_t *) backBuffer;

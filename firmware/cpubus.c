@@ -1,8 +1,11 @@
 #include "cpubus.h"
 
+#include <string.h>
+
 #include "main.h"
 #include "opcodes.h"
 #include "debug.h"
+#include "gamedb/game_detection.h"
 
 #include "pico/stdlib.h"
 #include "pico/mutex.h"
@@ -142,6 +145,8 @@ void reset() {
 
     cartridgeDMA = false;
 
+    memset((void*)memory, 0, sizeof(memory));
+
     toMemory(0xff04, 0xab);
     toMemory(0xff05, 0x00);
     toMemory(0xff06, 0x00);
@@ -174,6 +179,8 @@ void reset() {
     toMemory(0xff4a, 0x00);
     toMemory(0xff4b, 0x00);
     toMemory(0xffff, 0x00);
+
+    resetHashes();
 }
 
 void inline substitudeBusdataFromMemory() {

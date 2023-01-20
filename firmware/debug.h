@@ -5,6 +5,7 @@
 #include "ppu.h"
 
 #define DEBUG_EVENTS        //Mark events like opcodes or interrupts in the bus history. This is mostly harmless, but disabling it might save a few cycles in a problematic part of a game.
+//#define DEBUG_GAME_DETECTION  //Periodically outputs the current hashes used for game detection
 //#define DEBUG_PPU_TIMING    //Periodically measures the timing of PPU rendering and outputs it via USB serial
 //#define DEBUG_MEMORY_DUMP //Disables rendering and periodically dumps the emulated memory to USB serial
 //#define DEBUG_BREAKPOINT_AT_ADDRESS 0x3926 //Trigger a breakpoint if an opcode at the given address is about to be executed and dump memory and opcode history

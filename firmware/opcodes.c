@@ -3,7 +3,7 @@
 #include "cpubus.h"
 #include "ppu.h"
 #include "debug.h"
-
+#include "gamedb/game_detection.h"
 
 bool syncArmed = false;
 uint statSyncStage = 0; //0 = false, 1 = register read to A, 2 = masked to 0x03, 3 = cp to 0x01
@@ -25,8 +25,10 @@ void setOffsetToLine(uint8_t line) {
 
 void toMemory(uint16_t address, uint8_t data) {
     DEBUG_TRIGGER_BREAKPOINT_AT_WRITE_TO_ADDRESS
-    memory[address] = data;
-    if (address >= 0xff00) {
+
+    if ((address & 0xe000) == 0x8000) { //Writing to VRAM
+        VRAM_HASH(address, data); //Calculate hash for game detection if we are writing to VRAM
+    } else if (address >= 0xff00) { //Handle some IO registers
         switch (address) {
             case 0xff04: //Reset DIV register
                 div = cycleIndex;
@@ -73,6 +75,7 @@ void toMemory(uint16_t address, uint8_t data) {
                 break;
         }
     }
+    memory[address] = data;
 }
 
 //Read from memory, memory substitutions are already done in getNextFromBus, but the DMG sometimes shows the wrong address on the bus if data is loaded from an address pointed to by a register.

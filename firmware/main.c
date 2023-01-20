@@ -14,6 +14,7 @@
 #include "cpubus.h"
 #include "ppu.h"
 #include "debug.h"
+#include "gamedb/game_detection.h"
 
 #include "screens/default_yuv.h"
 #include "screens/game_end_yuv.h"
@@ -199,6 +200,11 @@ int main(void) {
                     vblank = true;
                     ledOff(); //Switches the LED GPIO to input to allow to use the same GPIO pin to read the mode button state, however, in order to allow the line to settle first, we do the read-out at the end of vblank and then re-enable the LED
                     startBackbufferBlend();
+                    if (gameInfo == NULL) {
+                        if (detectGame()) {
+                            showGameDetectedInfo(gameInfo->title);
+                        }
+                    }
                 } else if (vblank) {
                     if (y < SCREEN_H) {
                         vblank = false;

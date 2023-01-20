@@ -17,6 +17,7 @@ target_sources(gb_interceptor PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}/ppu.c
 	${CMAKE_CURRENT_LIST_DIR}/debug.c
 	${CMAKE_CURRENT_LIST_DIR}/usb_descriptors.c
+	${CMAKE_CURRENT_LIST_DIR}/gamedb/game_detection.c
 	)
 
 target_link_libraries(gb_interceptor PUBLIC pico_stdlib hardware_pio pico_multicore hardware_interp hardware_dma tinyusb_device tinyusb_board)
