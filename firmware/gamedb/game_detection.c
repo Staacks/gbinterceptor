@@ -7,10 +7,11 @@
 
 volatile uint vramHash1, vramHash2;
 
-struct GameInfo * gameInfo;
+struct GameInfo gameInfo;
+volatile bool gameDetected = false;
 
 void resetHashes() {
-    gameInfo = NULL;
+    gameDetected = false;
     vramHash1 = 0;
     vramHash2 = 0;
 }
@@ -25,8 +26,9 @@ bool detectGame() {
         uint mid = start + (end - start) / 2;
         if (gameInfos[mid].vramHash2 == vramHash2) {
             if (gameInfos[mid].vramHash1 == vramHash1) {
-                gameInfo = &gameInfos[mid];
-                printf("Detected %s\n", gameInfo->title);
+                gameDetected = true;
+                gameInfo = gameInfos[mid];
+                printf("Detected %s\n", gameInfo.title);
                 return true;
             } else if (gameInfos[mid].vramHash1 < vramHash1) {
                 start = mid + 1;

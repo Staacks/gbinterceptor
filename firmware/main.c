@@ -200,9 +200,9 @@ int main(void) {
                     vblank = true;
                     ledOff(); //Switches the LED GPIO to input to allow to use the same GPIO pin to read the mode button state, however, in order to allow the line to settle first, we do the read-out at the end of vblank and then re-enable the LED
                     startBackbufferBlend();
-                    if (gameInfo == NULL) {
+                    if (!gameDetected) {
                         if (detectGame()) {
-                            showGameDetectedInfo(gameInfo->title);
+                            showGameDetectedInfo(gameInfo.title);
                         }
                     }
                 } else if (vblank) {

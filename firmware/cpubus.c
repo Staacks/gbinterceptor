@@ -287,6 +287,9 @@ void handleMemoryBus() { //To be executed on second core
                             getNextFromBus();
                             sp += 2;
                             break;
+                        } else if (gameDetected && gameInfo.dmaFix != 0x0000 && *address == gameInfo.dmaFix) {
+                            synchronized = true;
+                            break;
                         }
                         getNextFromBus();
                         wait++;
