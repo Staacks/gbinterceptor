@@ -1,6 +1,6 @@
 # GB Interceptor PCB
 
-These are the design files for the PCB of the GB Interceptor. See the build guide in the main Readme for details.
+These are the design files for the PCB of the GB Interceptor. See the [build guide](https://github.com/Staacks/gbinterceptor/wiki/Build-guide) for details.
 
 # License
 
