@@ -10,8 +10,8 @@
 //#define DEBUG_MEMORY_DUMP //Disables rendering and periodically dumps the emulated memory to USB serial
 //#define DEBUG_BREAKPOINT_AT_ADDRESS 0x3926 //Trigger a breakpoint if an opcode at the given address is about to be executed and dump memory and opcode history
 //#define DEBUG_BREAKPOINT_AT_ADDRESS_IGNORE 73 //The break at DEBUG_BREAKPOINT_AT_ADDRESS will be ignored n times.
-//#define DEBUG_BREAKPOINT_AT_WRITE_TO_ADDRESS 0xffc7 //Trigger a breakpoint if data is written to a specific address
-//#define DEBUG_BREAKPOINT_AT_WRITE_TO_ADDRESS_IGNORE 0 //The break at DEBUG_BREAKPOINT_AT_WRITE_TO_ADDRESS will be ignored n times.
+//#define DEBUG_BREAKPOINT_AT_WRITE_TO_ADDRESS 0xc854 //Trigger a breakpoint if data is written to a specific address
+//#define DEBUG_BREAKPOINT_AT_WRITE_TO_ADDRESS_IGNORE 3 //The break at DEBUG_BREAKPOINT_AT_WRITE_TO_ADDRESS will be ignored n times.
 //#define DEBUG_BREAKPOINT_AT_READ_FROM_ADDRESS 0xa007 //Trigger a breakpoint if data is read from a specific address
 //#define DEBUG_BREAKPOINT_AT_READ_FROM_ADDRESS_IGNORE 0 //The break at DEBUG_BREAKPOINT_AT_READ_FROM_ADDRESS will be ignored n times.
 //#define DEBUG_LOG_REGISTERS //Log register values in the history, this takes a few cycles from the critical rp2040 core and might cause PIO stall problems. Note, that for some reason I don't understand this messes badly with vsync.
@@ -135,14 +135,14 @@ void printPPUTiming();
 #endif
 
 #ifdef DEBUG_LOG_REGISTERS
-    extern uint32_t volatile registerHistory32[256][2];
-    extern uint16_t volatile spHistory[256];
-    extern uint32_t volatile flagHistory[256];
+    extern uint32_t volatile registerHistory32[64][2]; //We only log the last 64 events to save memory
+    extern uint16_t volatile spHistory[64];
+    extern uint32_t volatile flagHistory[64];
     #define DEBUG_TRIGGER_LOG_REGISTERS \
-        registerHistory32[*historyIndex][0] = *((uint32_t *)(&registers[0])); \
-        registerHistory32[*historyIndex][1] = *((uint32_t *)(&registers[4])); \
-        spHistory[*historyIndex] = sp; \
-        flagHistory[*historyIndex] = flags;
+        registerHistory32[*historyIndex & 0x3f][0] = *((uint32_t *)(&registers[0])); \
+        registerHistory32[*historyIndex & 0x3f][1] = *((uint32_t *)(&registers[4])); \
+        spHistory[*historyIndex & 0x3f] = sp; \
+        flagHistory[*historyIndex & 0x3f] = flags;
 
 #else
 

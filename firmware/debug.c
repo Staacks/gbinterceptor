@@ -6,9 +6,9 @@
 #include "cpubus.h"
 
 #ifdef DEBUG_LOG_REGISTERS
-    uint32_t volatile registerHistory32[256][2];
-    uint16_t volatile spHistory[256];
-    uint32_t volatile flagHistory[256];
+    uint32_t volatile registerHistory32[64][2];
+    uint16_t volatile spHistory[64];
+    uint32_t volatile flagHistory[64];
 #endif
 
 #ifdef DEBUG_PPU_TIMING
@@ -92,12 +92,12 @@ void dumpBus() { //Dump opcode history
             (uint8_t)(b >> 16),
             event);
         #ifdef DEBUG_LOG_REGISTERS
-            if ((b & 0x01000000) != 0) {
-                uint8_t volatile * reg = (uint8_t volatile *)&registerHistory32[*historyIndex];
-                uint8_t volatile * flags = (uint8_t volatile*)&flagHistory[*historyIndex];
+            if ((b & 0x01000000) != 0 && i >= 0xc0) {
+                uint8_t volatile * reg = (uint8_t volatile *)&registerHistory32[*historyIndex & 0x3f];
+                uint8_t volatile * flags = (uint8_t volatile*)&flagHistory[*historyIndex & 0x3f];
                 printf(" A=%02x BC=%02x%02x DE=%02x%02x HL=%02x%02x SP=%04x %s%s%s%s",
                     reg[6], reg[1], reg[0], reg[3], reg[2], reg[5], reg[4], //See registers in cpubus.c about the uninstuitive order
-                    spHistory[*historyIndex],
+                    spHistory[*historyIndex & 0x3f],
                     flags[0] ? "Z" : "-", flags[1] ? "N" : "-", flags[2] ? "H" : "-", flags[3] ? "C" : "-"
                     );
             }
