@@ -1,6 +1,8 @@
 #ifndef _USB_DESCRIPTORS_H_
 #define _USB_DESCRIPTORS_H_
 
+void setUniqueSerial();
+
 /* Time stamp base clock. It is a deprecated parameter. */
 #define UVC_CLOCK_FREQUENCY 27000000
 /* video capture path */

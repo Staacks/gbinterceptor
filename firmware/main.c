@@ -131,6 +131,7 @@ int main(void) {
 
     board_init();
     setupDMA();
+    setUniqueSerial();
     tud_init(BOARD_TUD_RHPORT);
     stdio_init_all();
     setupGPIO();
