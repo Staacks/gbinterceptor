@@ -9,9 +9,14 @@ bool syncArmed = false;
 uint statSyncStage = 0; //0 = false, 1 = register read to A, 2 = masked to 0x03, 3 = cp to 0x01
 uint lySyncStage = 0; //0 = false, 1 = register read, 2 = cp
 uint syncReferenceCycle;
-int syncOffset;
+int syncOffset; //Helper to calculate offset to scanline for synching
 
-//Helper to calculate offset to scanline for synching
+//State variables for "reconstruct" feature for individual game fixes
+bool reconstructArmed = false;
+uint reconstructTargetCycle; //Points to the cycle at which a conditional jump is required to reconstruct the memory content. Starts at two cycles after value has been loaded to a, but can be increased if a cp [hl] is done inbetween. 
+uint8_t reconstructValueIfZ;
+uint8_t reconstructValueIfNZ;
+
 
 void setOffsetToLine(uint8_t line) {
     syncOffset = (line - y) * CYCLES_PER_LINE - lineCycle;
@@ -402,6 +407,13 @@ void cp_ ## REGISTER() { \
             lySyncStage = 2; \
         } else \
             syncArmed = false; \
+    } else if (reconstructArmed) { \
+        if (reconstructTargetCycle == cycleIndex + 1) { \
+            reconstructValueIfZ = *REGISTER; \
+            reconstructValueIfNZ = memory[gameInfo.reconstruct]; \
+        } else { \
+            reconstructArmed = false; \
+        } \
     } \
     getNextFromBus(); \
 }
@@ -433,6 +445,14 @@ void cp_HL() {
             lySyncStage = 2;
         } else
             syncArmed = false;
+    } else if (reconstructArmed) {
+        if (reconstructTargetCycle == cycleIndex) {
+            reconstructTargetCycle++;
+            reconstructValueIfZ = v;
+            reconstructValueIfNZ = memory[gameInfo.reconstruct];
+        } else {
+            reconstructArmed = false;
+        }
     }
     getNextFromBus();
 }
@@ -610,6 +630,52 @@ void inc_r16() {
     getNextFromBus();
 }
 
+// JP //
+
+void jp_nz() {
+    //For us jumps are mostly NOPs because we simply follow the PC of the real Game Boy and don't have to make any decisions ourselves. But conditional jumps can be used to reconstruct unknown memory values.
+    uint16_t nextPC = *address + 2;
+    getNextFromBus();
+    getNextFromBus();
+    getNextFromBus();
+    if (nextPC != *address) { //If these are not equal, a jump was not taken but the next code was fetched.
+        if (reconstructArmed) {
+            if (reconstructTargetCycle + 3 == cycleIndex)
+                memory[gameInfo.reconstruct] = reconstructValueIfNZ;
+            reconstructArmed = false;
+        }
+        getNextFromBus();               //If not equal, burn another cycle.
+    } else {
+        if (reconstructArmed) {
+            if (reconstructTargetCycle + 3 == cycleIndex)
+                memory[gameInfo.reconstruct] = reconstructValueIfZ;
+            reconstructArmed = false;
+        }
+    }
+}
+
+void jp_z() {
+    //See jp_nz
+    uint16_t nextPC = *address + 2;
+    getNextFromBus();
+    getNextFromBus();
+    getNextFromBus();
+    if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
+        if (reconstructArmed) {
+            if (reconstructTargetCycle + 3 == cycleIndex)
+                memory[gameInfo.reconstruct] = reconstructValueIfZ;
+            reconstructArmed = false;
+        }
+        getNextFromBus();
+    } else {
+        if (reconstructArmed) {
+            if (reconstructTargetCycle + 3 == cycleIndex)
+                memory[gameInfo.reconstruct] = reconstructValueIfNZ;
+            reconstructArmed = false;
+        }
+    }
+}
+
 // JR //
 
 void jr_nz() {
@@ -617,20 +683,32 @@ void jr_nz() {
     uint16_t nextPC = *address + 2;
     getNextFromBus();
     getNextFromBus();
-    if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
-        getNextFromBus();               //If not equal, burn another cycle.
-    } else if (syncArmed) {
-        //At this point the jump was not taken and we can assume that the condition we have been waiting for was finally found.
-        if (statSyncStage == 3) {
-            if (cycleIndex - syncReferenceCycle < 9) { //The JR did not occure more than 7 cycles later - anything else was not a tight loop and something more complex that we cannot handle
-                vblankOffset = syncOffset;
-            }
-        } else if (lySyncStage == 2) {
-            if (cycleIndex - syncReferenceCycle < 7) { //The JR did not occure more than 5 cycles later - anything else was not a tight loop and something more complex that we cannot handle
-                vblankOffset = syncOffset;
-            }
+    if (nextPC != *address) { //If these are not equal, a jump was not taken but the next code was fetched.
+        if (reconstructArmed) {
+            if (reconstructTargetCycle + 2 == cycleIndex)
+                memory[gameInfo.reconstruct] = reconstructValueIfNZ;
+            reconstructArmed = false;
         }
-        syncArmed = false;
+        getNextFromBus();               //If not equal, burn another cycle.
+    } else {
+        if (syncArmed) {
+            //At this point the jump was not taken and we can assume that the condition we have been waiting for was finally found.
+            if (statSyncStage == 3) {
+                if (cycleIndex - syncReferenceCycle < 9) { //The JR did not occure more than 7 cycles later - anything else was not a tight loop and something more complex that we cannot handle
+                    vblankOffset = syncOffset;
+                }
+            } else if (lySyncStage == 2) {
+                if (cycleIndex - syncReferenceCycle < 7) { //The JR did not occure more than 5 cycles later - anything else was not a tight loop and something more complex that we cannot handle
+                    vblankOffset = syncOffset;
+                }
+            }
+            syncArmed = false;
+        }
+        if (reconstructArmed) {
+            if (reconstructTargetCycle + 2 == cycleIndex)
+                memory[gameInfo.reconstruct] = reconstructValueIfZ;
+            reconstructArmed = false;
+        }
     }
 }
 
@@ -649,7 +727,18 @@ void jr_z() {
         }
             syncArmed = false;
         }
+        if (reconstructArmed) {
+            if (reconstructTargetCycle + 2 == cycleIndex)
+                memory[gameInfo.reconstruct] = reconstructValueIfZ;
+            reconstructArmed = false;
+        }
         getNextFromBus();
+    } else {
+        if (reconstructArmed) {
+            if (reconstructTargetCycle + 2 == cycleIndex)
+                memory[gameInfo.reconstruct] = reconstructValueIfNZ;
+            reconstructArmed = false;
+        }
     }
 }
 
@@ -660,6 +749,10 @@ void ld_A_a8() {
     uint8_t a8 = *opcode;
     getNextFromBus();
     *a = fromMemory(0xff00 | a8);
+    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == (0xff00 | a8)) {
+        reconstructArmed = true;
+        reconstructTargetCycle = cycleIndex + 2;
+    }
     getNextFromBus();
 }
 
@@ -674,6 +767,10 @@ void ld_a8_A() {
 void ld_A_aC() {
     getNextFromBus();
     *a = fromMemory(0xff00 | *c);
+    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == (0xff00 | *c)) {
+        reconstructArmed = true;
+        reconstructTargetCycle = cycleIndex + 2;
+    }
     getNextFromBus();
 }
 
@@ -690,6 +787,10 @@ void ld_A_a16() {
     a16 |= ((rawBusData >> 8) & 0xff00);
     getNextFromBus();
     *a = fromMemory(a16);
+    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == a16) {
+        reconstructArmed = true;
+        reconstructTargetCycle = cycleIndex + 2;
+    }
     getNextFromBus();
 }
 
@@ -746,23 +847,29 @@ void ld_mem_A() { //ld (bc) , A; ld (de), A; ld (hl+), A; ld (hl-), A
 }
 
 void ld_A_mem() { //ld A, (bc); ld A, (de); ld A, (hl+); ld A, (hl-)
+    uint16_t a16;
     switch (rawBusData & 0x00300000) {
         case 0x00000000:
             getNextFromBus();
-            *a = fromMemory(*bc);
+            a16 = *bc;
             break;
         case 0x00100000:
             getNextFromBus();
-            *a = fromMemory(*de);
+            a16 = *de;
             break;
         case 0x00200000:
             getNextFromBus();
-            *a = fromMemory((*hl)++);
+            a16 = (*hl)++;
             break;
         case 0x00300000:
             getNextFromBus();
-            *a = fromMemory((*hl)--);
+            a16 = (*hl)--;
             break;
+    }
+    *a = fromMemory(a16);
+    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == a16) {
+        reconstructArmed = true;
+        reconstructTargetCycle = cycleIndex + 2;
     }
     
     getNextFromBus();
@@ -861,7 +968,16 @@ GENERATE_LD_R_HL(d)
 GENERATE_LD_R_HL(e)
 GENERATE_LD_R_HL(h)
 GENERATE_LD_R_HL(l)
-GENERATE_LD_R_HL(a)
+
+void ld_a_HL() {
+    getNextFromBus();
+    *a = fromMemory(*hl);
+    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == *hl) {
+        reconstructArmed = true;
+        reconstructTargetCycle = cycleIndex + 2;
+    }
+    getNextFromBus();
+}
 
 #define GENERATE_LD_HL_R(REGISTER) \
 void ld_HL_ ## REGISTER() { \
@@ -1278,6 +1394,15 @@ void xCB() {
             v = registers[i];
         }
         *Z = (((v >> bit) & 0x01) == 0);
+        if (reconstructArmed) {
+            if (reconstructTargetCycle == cycleIndex) {
+                reconstructTargetCycle++;
+                reconstructValueIfZ = (memory[gameInfo.reconstruct] & ~(1 << bit));
+                reconstructValueIfNZ = (memory[gameInfo.reconstruct] | (1 << bit));
+            } else {
+                reconstructArmed = false;
+            }
+        }
     } else if (opcode & 0x20) {
         // SLA/SRA and SWAP/SRL
         if (opcode & 0x10) {

@@ -26,6 +26,7 @@ with open('games.csv') as csvfile:
             ".vramHash1 = " + row["vramHash1"] + ", " + \
             ".vramHash2 = " + row["vramHash2"] + ", " + \
             ".dmaFix = " + row["dmaFix"] + ", " + \
+            ".reconstruct = " + row["reconstruct"].strip() + ", " + \
             ".title = \"" + row["title"] + "\", " + " "*(18-len(row["title"])) + \
             "}, // " + row["comment"]\
         )

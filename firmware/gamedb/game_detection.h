@@ -10,6 +10,7 @@ extern volatile bool gameDetected;
 struct GameInfo {
     uint vramHash1, vramHash2;
     uint16_t dmaFix; // Address that recognizes return after DMA (if not 0x0000)
+    uint16_t reconstruct; //Try to reconstruct the content of this address from conditional jumps (if not 0x0000)
     char title[19];
 };
 
