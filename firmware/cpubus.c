@@ -287,7 +287,7 @@ void handleMemoryBus() { //To be executed on second core
                             getNextFromBus();
                             sp += 2;
                             break;
-                        } else if (gameDetected && gameInfo.dmaFix != 0x0000 && *address == gameInfo.dmaFix) {
+                        } else if (gameInfo.dmaFix != 0x0000 && *address == gameInfo.dmaFix) {
                             synchronized = true;
                             break;
                         }
@@ -327,14 +327,14 @@ void handleMemoryBus() { //To be executed on second core
                 getNextFromBus();
                 getNextFromBus();
                 getNextFromBus();
-                if (interruptsEnabled && cycleIndex - interruptsEnableCycle > 16) {
+                if (interruptsEnabled && (cycleIndex - interruptsEnableCycle > 16 || gameInfo.useImmediateIRQ)) {
                     if (*address == 0x0040) { //vsync, set PPU to the beginning of vsync plus a few cycles that it took to get here.
                         vblankOffset = (144 - y) * CYCLES_PER_LINE - lineCycle - 6;
                         if (vblankOffset > CYCLES_PER_FRAME/2)
                             vblankOffset -= CYCLES_PER_FRAME;
                     }
-                    interruptsEnabled = false;
                 }
+                interruptsEnabled = false;
             }
 
             //Execute an opcode

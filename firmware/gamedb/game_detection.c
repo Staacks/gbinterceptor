@@ -12,6 +12,10 @@ volatile bool gameDetected = false;
 
 void resetHashes() {
     gameDetected = false;
+    gameInfo.dmaFix = 0x0000;
+    gameInfo.reconstruct = 0x0000;
+    gameInfo.useImmediateIRQ = false;
+
     vramHash1 = 0;
     vramHash2 = 0;
 }
