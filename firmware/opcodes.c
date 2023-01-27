@@ -1293,7 +1293,7 @@ void sbc_A_ ## REGISTER() { \
         cy = 0; \
     *N = 1; \
     *H = ((*a & 0x0f) < (*REGISTER & 0x0f) - cy); \
-    *C = (*a < *REGISTER - cy); \
+    *C = (*a < *REGISTER + cy); \
     *a -= *REGISTER + cy; \
     *Z = (*a == 0); \
     getNextFromBus(); \
@@ -1317,7 +1317,7 @@ void sbc_A_HL() {
     uint8_t v = fromMemory(*hl);
     *N = 1;
     *H = ((*a & 0x0f) < (v & 0x0f) - cy);
-    *C = (*a < v - cy);
+    *C = (*a < v + cy);
     *a -= v + cy;
     *Z = (*a == 0);
     getNextFromBus();
