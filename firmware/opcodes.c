@@ -129,11 +129,8 @@ uint8_t static inline fromMemory(uint16_t addr) {
                     syncReferenceCycle = cycleIndex;
                     if (y >= SCREEN_H)
                         return 1;
-                    else switch (renderState) {
-                        case rendering: return 3;
-                        case done: return 0;
-                        default: return 2;
-                    }
+                    else
+                        return 0; //The PPU sync is usually not precise enough to emulate mode 2 and mode 3. This just gives weird results if a game really uses this value and it even throws off game detection in such cases.
         case 0xff44:
                     //LY register. The exact value usually is not critical as the Game Boy will usually only use this for conditional jumps, but we can return our PPU y position here anyway.
                     //We can assume that the game reads LY in a tight loop to enter some critical code with extremely precise timing and we need to synchronize our PPU to it.
@@ -386,51 +383,6 @@ void call3_6() {
         getNextFromBus();
     } else
         applyBranchBasedFixes(addr, false);
-}
-
-void call_z() {
-    uint16_t addr = *address;
-    getNextFromBus();
-    getNextFromBus();
-    getNextFromBus();
-    if (addr + 3 != *address) {          //If these are equal, a jump was not taken but the next code was fetched.
-        //If not equal, burn three more cycles and push to sp register
-        *a = 0; //At this point we know it's zero, so let's set it. Should not hurt.
-        applyBranchBasedFixes(addr, true);
-        addr++;
-        toMemory(--sp, addr >> 8);
-        toMemory(--sp, addr);
-        getNextFromBus();                 
-        getNextFromBus();
-        if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
-            stop("SP desynchronized.");
-        }
-        getNextFromBus();
-    } else
-        applyBranchBasedFixes(addr, false);
-}
-
-void call_nz() {
-    uint16_t addr = *address;
-    getNextFromBus();
-    getNextFromBus();
-    getNextFromBus();
-    if (addr + 3 != *address) {          //If these are equal, a jump was not taken but the next code was fetched.
-        //If not equal, burn three more cycles and push to sp register
-        applyBranchBasedFixes(addr, true);
-        addr++;
-        toMemory(--sp, addr >> 8);
-        toMemory(--sp, addr);
-        getNextFromBus();                 
-        getNextFromBus();
-        if (*address != sp && ((sp & 0xe000) != 0x8000)) {//Only verify consistency of the SP address if it is not pointing at VRAM, because the DMG may show wrong addresses in that case
-            stop("SP desynchronized.");
-        }
-        getNextFromBus();
-    } else {
-        *a = 0; //At this point we know it's zero, so let's set it. Should not hurt.
-        applyBranchBasedFixes(addr, false);
-    }
 }
 
 // CCF //
@@ -687,36 +639,6 @@ void jp_cond() {
     }
 }
 
-void jp_z() {
-    //For us jumps are mostly NOPs because we simply follow the PC of the real Game Boy and don't have to make any decisions ourselves. But conditional jumps can be used to reconstruct unknown memory values.
-    uint16_t addr = *address;
-    getNextFromBus();
-    getNextFromBus();
-    getNextFromBus();
-    if (addr + 3 != *address) { //If these are not equal, a jump was taken
-        *a = 0; //At this point we know it's zero, so let's set it. Should not hurt.
-        applyBranchBasedFixes(addr, true);
-        getNextFromBus();               //If not equal, burn another cycle.
-    } else {
-        applyBranchBasedFixes(addr, false);
-    }
-}
-
-void jp_nz() {
-    //For us jumps are mostly NOPs because we simply follow the PC of the real Game Boy and don't have to make any decisions ourselves. But conditional jumps can be used to reconstruct unknown memory values.
-    uint16_t addr = *address;
-    getNextFromBus();
-    getNextFromBus();
-    getNextFromBus();
-    if (addr + 3 != *address) { //If these are not equal, a jump was taken
-        applyBranchBasedFixes(addr, true);
-        getNextFromBus();               //If not equal, burn another cycle.
-    } else {
-        *a = 0; //At this point we know it's zero, so let's set it. Should not hurt.
-        applyBranchBasedFixes(addr, false);
-    }
-}
-
 // JR //
 
 void jr_cond() {
@@ -741,7 +663,6 @@ void jr_nz() {
         applyBranchBasedFixes(addr, true);
         getNextFromBus();               //If not equal, burn another cycle.
     } else {
-        *a = 0; //At this point we know it's zero, so let's set it. Should not hurt.
         if (syncArmed) {
             //At this point the jump was not taken and we can assume that the condition we have been waiting for was finally found.
             if (statSyncStage == 3) {
@@ -765,7 +686,6 @@ void jr_z() {
     getNextFromBus();
     getNextFromBus();
     if (addr + 2 != *address) { //If these are equal, a jump was not taken but the next code was fetched.
-        *a = 0; //At this point we know it's zero, so let's set it. Should not hurt.
         if (syncArmed) {
             //At this point the jump was taken and we can assume that the condition we have been waiting for was finally found.
             if (cycleIndex - syncReferenceCycle < 7) { //The JR did not occure more than 5 cycles later - anything else was not a tight loop and something more complex that we cannot handle
@@ -1616,8 +1536,8 @@ void (*opcodes[256])() = {
 /*9..*/  sub_A_b,  sub_A_c,  sub_A_d,  sub_A_e,  sub_A_h,  sub_A_l, sub_A_HL,  sub_A_a,    sbc_A_b,  sbc_A_c,  sbc_A_d,  sbc_A_e,  sbc_A_h,  sbc_A_l, sbc_A_HL,  sbc_A_a,
 /*a..*/    and_b,    and_c,    and_d,    and_e,    and_h,    and_l,   and_HL,    and_a,      xor_b,    xor_c,    xor_d,    xor_e,    xor_h,    xor_l,   xor_HL,    xor_a,
 /*b..*/     or_b,     or_c,     or_d,     or_e,     or_h,     or_l,    or_HL,     or_a,       cp_b,     cp_c,     cp_d,     cp_e,     cp_h,     cp_l,    cp_HL,     cp_a,
-/*c..*/   ret2_5,  pop_r16,    jp_nz,    noop4,  call_nz, push_r16, add_A_d8,      rst,     ret2_5,     ret4,     jp_z,      xCB,  call3_6,    call6, adc_A_d8,      rst,
-/*d..*/   ret2_5,  pop_r16,  jp_cond,  unknown,  call3_6, push_r16, sub_A_d8,      rst,     ret2_5,    reti4,  jp_cond,  unknown,   call_z,  unknown, sbc_A_d8,      rst,
+/*c..*/   ret2_5,  pop_r16,  jp_cond,    noop4,  call3_6, push_r16, add_A_d8,      rst,     ret2_5,     ret4,  jp_cond,      xCB,  call3_6,    call6, adc_A_d8,      rst,
+/*d..*/   ret2_5,  pop_r16,  jp_cond,  unknown,  call3_6, push_r16, sub_A_d8,      rst,     ret2_5,    reti4,  jp_cond,  unknown,  call3_6,  unknown, sbc_A_d8,      rst,
 /*e..*/  ld_a8_A,  pop_r16,  ld_aC_A,  unknown,  unknown, push_r16,   and_d8,      rst,  add_SP_s8,    noop1, ld_a16_A,  unknown,  unknown,  unknown,   xor_d8,      rst,
 /*f..*/  ld_A_a8,  pop_r16,  ld_A_aC,       di,  unknown, push_r16,    or_d8,      rst, ld_HL_SPs8, ld_SP_HL, ld_A_a16,       ei,  unknown,  unknown,    cp_d8,      rst
 };
