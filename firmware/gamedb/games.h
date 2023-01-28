@@ -84,7 +84,7 @@ GameInfo __in_flash("games") gameInfos[GAME_LIST_SIZE] = {
     {.vramHash1 = 0xe201a30a, .vramHash2 = 0x0cc9e88c, .dmaFix = 0x0000, .useImmediateIRQ = false, .branchBasedFixes = {}, .title = "LOCK'N CHASE",       }, // Lock n' Chase ~ Lock 'n' Chase (World)
     {.vramHash1 = 0xa7096e59, .vramHash2 = 0x0cfa766c, .dmaFix = 0x0000, .useImmediateIRQ = false, .branchBasedFixes = {}, .title = "Game Boy Gallery 2", }, // Game Boy Gallery 2 (Japan)
     {.vramHash1 = 0x043a5b93, .vramHash2 = 0x0d26af13, .dmaFix = 0x0000, .useImmediateIRQ = false, .branchBasedFixes = {}, .title = "GOAL!",              }, // Goal! (USA)
-    {.vramHash1 = 0x439789d8, .vramHash2 = 0x0d33310c, .dmaFix = 0x0000, .useImmediateIRQ = false, .branchBasedFixes = {}, .title = "KIRBY2",             }, // Hoshi no Kirby 2 (Japan), Kirby's Dream Land 2 (USA, Europe)
+    {.vramHash1 = 0x439789d8, .vramHash2 = 0x0d33310c, .dmaFix = 0x0000, .useImmediateIRQ = true, .branchBasedFixes = {}, .title = "Kirby's DreamLand2", }, // Hoshi no Kirby 2 (Japan), Kirby's Dream Land 2 (USA, Europe)
     {.vramHash1 = 0xccdcb676, .vramHash2 = 0x0d362626, .dmaFix = 0x0000, .useImmediateIRQ = false, .branchBasedFixes = {}, .title = "PACHISLOT KIDS",     }, // Pachi-Slot Kids 2 (Japan)
     {.vramHash1 = 0x154d47f0, .vramHash2 = 0x0d419c8e, .dmaFix = 0x0000, .useImmediateIRQ = false, .branchBasedFixes = {}, .title = "RUNES OF VIRTU",     }, // Ultima - Runes of Virtue (USA), Ultima - Ushinawareta Runes (Japan)
     {.vramHash1 = 0x80c0355c, .vramHash2 = 0x0d45fc38, .dmaFix = 0x0000, .useImmediateIRQ = false, .branchBasedFixes = {}, .title = "CHUCK ROCK",         }, // Chuck Rock (USA, Europe)

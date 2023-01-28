@@ -572,7 +572,7 @@
 "0xe0f677a2", "0x60329e80", "KIRBY DREAM LA",     "",      "Kirby's Dream Land (USA, Europe)"
 "0x3561044e", "0x3eea4abc", "KIRBY'S PINBAL",     "",      "Kirby no Pinball (Japan)"
 "0xa2fcbd30", "0x9388c6ba", "KIRBY'S PINBAL",     "",      "Kirby's Pinball Land (USA, Europe)"
-"0x439789d8", "0x0d33310c", "KIRBY2",             "",      "Hoshi no Kirby 2 (Japan), Kirby's Dream Land 2 (USA, Europe)"
+"0x439789d8", "0x0d33310c", "Kirby's DreamLand2", "useImmediateIRQ(true)", "Hoshi no Kirby 2 (Japan), Kirby's Dream Land 2 (USA, Europe)"
 "0xaeb3ff8f", "0xee5f477c", "KITCHIN PANIC",      "",      "Kitchen Panic (Japan)"
 "0xb0df541e", "0x13ac5072", "KITERETU ZYURA",     "",      "Kiteretsu Daihyakka - Bouken Ooedo Juraki (Japan)"
 "0x485d757e", "0xfc131af2", "KIWAME-GB",          "",      "Pro Mahjong Kiwame GB (Japan)"
