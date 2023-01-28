@@ -7,14 +7,14 @@
 
 volatile uint vramHash1, vramHash2;
 
-struct GameInfo gameInfo;
+GameInfo gameInfo;
 volatile bool gameDetected = false;
 
 void resetHashes() {
     gameDetected = false;
     gameInfo.dmaFix = 0x0000;
-    gameInfo.reconstruct = 0x0000;
     gameInfo.useImmediateIRQ = false;
+    gameInfo.branchBasedFixes[0].jumpAddress = 0x0000;
 
     vramHash1 = 0;
     vramHash2 = 0;

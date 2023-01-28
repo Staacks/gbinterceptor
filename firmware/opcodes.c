@@ -11,19 +11,45 @@ uint lySyncStage = 0; //0 = false, 1 = register read, 2 = cp
 uint syncReferenceCycle;
 int syncOffset; //Helper to calculate offset to scanline for synching
 
-//State variables for "reconstruct" feature for individual game fixes
-bool reconstructArmed = false;
-uint reconstructTargetCycle; //Points to the cycle at which a conditional jump is required to reconstruct the memory content. Starts at two cycles after value has been loaded to a, but can be increased if a cp [hl] is done inbetween. 
-uint8_t reconstructValueIfZ;
-uint8_t reconstructValueIfNZ;
-
-
 void setOffsetToLine(uint8_t line) {
     syncOffset = (line - y) * CYCLES_PER_LINE - lineCycle;
     if (syncOffset > CYCLES_PER_FRAME/2)
         syncOffset -= CYCLES_PER_FRAME;
     else if (syncOffset < -CYCLES_PER_FRAME/2)
         syncOffset += CYCLES_PER_FRAME;
+}
+
+void applyBranchBasedFixes(uint opcodeAddress, bool jumpTaken) {
+    for (uint i = 0; i < BRANCH_BASED_FIX_LIST_SIZE; i++) {
+        if (gameInfo.branchBasedFixes[i].jumpAddress == 0x0000)
+            return;
+        if (gameInfo.branchBasedFixes[i].jumpAddress == opcodeAddress) {
+            FixMethod method;
+            uint8_t value;
+            if (jumpTaken) {
+                method = gameInfo.branchBasedFixes[i].takenMethod;
+                value = gameInfo.branchBasedFixes[i].takenValue;
+            } else {
+                method = gameInfo.branchBasedFixes[i].notTakenMethod;
+                value = gameInfo.branchBasedFixes[i].notTakenValue;
+            }
+            switch (method) {
+                case nop: break;
+                case set:
+                    memory[gameInfo.branchBasedFixes[0].fixTarget] = value;
+                    break;
+                case and:
+                    memory[gameInfo.branchBasedFixes[0].fixTarget] &= value;
+                    break;
+                case or:
+                    memory[gameInfo.branchBasedFixes[0].fixTarget] |= value;
+                    break;
+                case xor:
+                    memory[gameInfo.branchBasedFixes[0].fixTarget] ^= value;
+                    break;
+            }
+        }
+    }
 }
 
 //Wrap memory writes to capture writes to registers
@@ -143,24 +169,6 @@ void noop4() {
     getNextFromBus();
     getNextFromBus();
     getNextFromBus();
-}
-
-void noop2_3() {
-    uint16_t nextPC = *address + 2;
-    getNextFromBus();
-    getNextFromBus();
-    if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
-        getNextFromBus();               //If not equal, burn another cycle.
-    }
-}
-
-void noop3_4() {
-    uint16_t nextPC = *address + 3;
-    getNextFromBus();
-    getNextFromBus();
-    getNextFromBus();
-    if (nextPC != *address) //If these are equal, a jump was not taken but the next code was fetched.
-        getNextFromBus();               //If not equal, burn another cycle.
 }
 
 // ADD //
@@ -360,12 +368,14 @@ void call6() {
 }
 
 void call3_6() {
-    uint16_t addr = *address + 1;
+    uint16_t addr = *address;
     getNextFromBus();
     getNextFromBus();
     getNextFromBus();
-    if (addr + 2 != *address) {          //If these are equal, a jump was not taken but the next code was fetched.
+    if (addr + 3 != *address) {          //If these are equal, a jump was not taken but the next code was fetched.
          //If not equal, burn three more cycles and push to sp register
+        applyBranchBasedFixes(addr, true);
+        addr++;
         toMemory(--sp, addr >> 8);
         toMemory(--sp, addr);
         getNextFromBus();                 
@@ -374,7 +384,8 @@ void call3_6() {
             stop("SP desynchronized.");
         }
         getNextFromBus();
-    }
+    } else
+        applyBranchBasedFixes(addr, false);
 }
 
 // CCF //
@@ -407,13 +418,6 @@ void cp_ ## REGISTER() { \
             lySyncStage = 2; \
         } else \
             syncArmed = false; \
-    } else if (reconstructArmed) { \
-        if (reconstructTargetCycle == cycleIndex + 1) { \
-            reconstructValueIfZ = *REGISTER; \
-            reconstructValueIfNZ = memory[gameInfo.reconstruct]; \
-        } else { \
-            reconstructArmed = false; \
-        } \
     } \
     getNextFromBus(); \
 }
@@ -445,14 +449,6 @@ void cp_HL() {
             lySyncStage = 2;
         } else
             syncArmed = false;
-    } else if (reconstructArmed) {
-        if (reconstructTargetCycle == cycleIndex) {
-            reconstructTargetCycle++;
-            reconstructValueIfZ = v;
-            reconstructValueIfNZ = memory[gameInfo.reconstruct];
-        } else {
-            reconstructArmed = false;
-        }
     }
     getNextFromBus();
 }
@@ -632,63 +628,42 @@ void inc_r16() {
 
 // JP //
 
-void jp_nz() {
+void jp_cond() {
     //For us jumps are mostly NOPs because we simply follow the PC of the real Game Boy and don't have to make any decisions ourselves. But conditional jumps can be used to reconstruct unknown memory values.
-    uint16_t nextPC = *address + 2;
+    uint16_t addr = *address;
     getNextFromBus();
     getNextFromBus();
     getNextFromBus();
-    if (nextPC != *address) { //If these are not equal, a jump was not taken but the next code was fetched.
-        if (reconstructArmed) {
-            if (reconstructTargetCycle + 3 == cycleIndex)
-                memory[gameInfo.reconstruct] = reconstructValueIfNZ;
-            reconstructArmed = false;
-        }
+    if (addr + 3 != *address) { //If these are not equal, a jump was taken
+        applyBranchBasedFixes(addr, true);
         getNextFromBus();               //If not equal, burn another cycle.
     } else {
-        if (reconstructArmed) {
-            if (reconstructTargetCycle + 3 == cycleIndex)
-                memory[gameInfo.reconstruct] = reconstructValueIfZ;
-            reconstructArmed = false;
-        }
-    }
-}
-
-void jp_z() {
-    //See jp_nz
-    uint16_t nextPC = *address + 2;
-    getNextFromBus();
-    getNextFromBus();
-    getNextFromBus();
-    if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
-        if (reconstructArmed) {
-            if (reconstructTargetCycle + 3 == cycleIndex)
-                memory[gameInfo.reconstruct] = reconstructValueIfZ;
-            reconstructArmed = false;
-        }
-        getNextFromBus();
-    } else {
-        if (reconstructArmed) {
-            if (reconstructTargetCycle + 3 == cycleIndex)
-                memory[gameInfo.reconstruct] = reconstructValueIfNZ;
-            reconstructArmed = false;
-        }
+        applyBranchBasedFixes(addr, false);
     }
 }
 
 // JR //
 
+void jr_cond() {
+    //For us jumps are mostly NOPs because we simply follow the PC of the real Game Boy and don't have to make any decisions ourselves. But conditional jumps can be used to reconstruct unknown memory values.
+    uint16_t addr = *address;
+    getNextFromBus();
+    getNextFromBus();
+    if (addr + 2 != *address) { //If these are not equal, a jump was taken
+        applyBranchBasedFixes(addr, true);
+        getNextFromBus();               //If not equal, burn another cycle.
+    } else {
+        applyBranchBasedFixes(addr, false);
+    }
+}
+
 void jr_nz() {
     //For us jumps are mostly NOPs because we simply follow the PC of the real Game Boy and don't have to make any decisions ourselves. But in conditional relative jumps are sometimes part of a tight loop waiting for a specific PPU state, which we need to use to synchronize our PPU
-    uint16_t nextPC = *address + 2;
+    uint16_t addr = *address;
     getNextFromBus();
     getNextFromBus();
-    if (nextPC != *address) { //If these are not equal, a jump was not taken but the next code was fetched.
-        if (reconstructArmed) {
-            if (reconstructTargetCycle + 2 == cycleIndex)
-                memory[gameInfo.reconstruct] = reconstructValueIfNZ;
-            reconstructArmed = false;
-        }
+    if (addr + 2 != *address) { //If these are not equal, a jump was not taken but the next code was fetched.
+        applyBranchBasedFixes(addr, true);
         getNextFromBus();               //If not equal, burn another cycle.
     } else {
         if (syncArmed) {
@@ -704,20 +679,16 @@ void jr_nz() {
             }
             syncArmed = false;
         }
-        if (reconstructArmed) {
-            if (reconstructTargetCycle + 2 == cycleIndex)
-                memory[gameInfo.reconstruct] = reconstructValueIfZ;
-            reconstructArmed = false;
-        }
+        applyBranchBasedFixes(addr, false);
     }
 }
 
 void jr_z() {
     //See jr_nz
-    uint16_t nextPC = *address + 2;
+    uint16_t addr = *address;
     getNextFromBus();
     getNextFromBus();
-    if (nextPC != *address) { //If these are equal, a jump was not taken but the next code was fetched.
+    if (addr + 2 != *address) { //If these are equal, a jump was not taken but the next code was fetched.
         if (syncArmed) {
             //At this point the jump was taken and we can assume that the condition we have been waiting for was finally found.
             if (cycleIndex - syncReferenceCycle < 7) { //The JR did not occure more than 5 cycles later - anything else was not a tight loop and something more complex that we cannot handle
@@ -727,18 +698,10 @@ void jr_z() {
         }
             syncArmed = false;
         }
-        if (reconstructArmed) {
-            if (reconstructTargetCycle + 2 == cycleIndex)
-                memory[gameInfo.reconstruct] = reconstructValueIfZ;
-            reconstructArmed = false;
-        }
+        applyBranchBasedFixes(addr, true);
         getNextFromBus();
     } else {
-        if (reconstructArmed) {
-            if (reconstructTargetCycle + 2 == cycleIndex)
-                memory[gameInfo.reconstruct] = reconstructValueIfNZ;
-            reconstructArmed = false;
-        }
+        applyBranchBasedFixes(addr, false);
     }
 }
 
@@ -749,10 +712,6 @@ void ld_A_a8() {
     uint8_t a8 = *opcode;
     getNextFromBus();
     *a = fromMemory(0xff00 | a8);
-    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == (0xff00 | a8)) {
-        reconstructArmed = true;
-        reconstructTargetCycle = cycleIndex + 2;
-    }
     getNextFromBus();
 }
 
@@ -767,10 +726,6 @@ void ld_a8_A() {
 void ld_A_aC() {
     getNextFromBus();
     *a = fromMemory(0xff00 | *c);
-    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == (0xff00 | *c)) {
-        reconstructArmed = true;
-        reconstructTargetCycle = cycleIndex + 2;
-    }
     getNextFromBus();
 }
 
@@ -787,10 +742,6 @@ void ld_A_a16() {
     a16 |= ((rawBusData >> 8) & 0xff00);
     getNextFromBus();
     *a = fromMemory(a16);
-    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == a16) {
-        reconstructArmed = true;
-        reconstructTargetCycle = cycleIndex + 2;
-    }
     getNextFromBus();
 }
 
@@ -867,10 +818,6 @@ void ld_A_mem() { //ld A, (bc); ld A, (de); ld A, (hl+); ld A, (hl-)
             break;
     }
     *a = fromMemory(a16);
-    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == a16) {
-        reconstructArmed = true;
-        reconstructTargetCycle = cycleIndex + 2;
-    }
     
     getNextFromBus();
 }
@@ -972,10 +919,6 @@ GENERATE_LD_R_HL(l)
 void ld_a_HL() {
     getNextFromBus();
     *a = fromMemory(*hl);
-    if (gameDetected && gameInfo.reconstruct != 0 && gameInfo.reconstruct == *hl) {
-        reconstructArmed = true;
-        reconstructTargetCycle = cycleIndex + 2;
-    }
     getNextFromBus();
 }
 
@@ -1249,7 +1192,7 @@ void sbc_A_d8() {
     uint8_t d8 = *opcode;
     *N = 1;
     *H = ((*a & 0x0f) < (d8 & 0x0f) - cy);
-    *C = (*a < d8 - cy);
+    *C = (*a < d8 + cy);
     *a -= d8 + cy;
     *Z = (*a == 0);
     getNextFromBus();
@@ -1394,15 +1337,6 @@ void xCB() {
             v = registers[i];
         }
         *Z = (((v >> bit) & 0x01) == 0);
-        if (reconstructArmed) {
-            if (reconstructTargetCycle == cycleIndex) {
-                reconstructTargetCycle++;
-                reconstructValueIfZ = (memory[gameInfo.reconstruct] & ~(1 << bit));
-                reconstructValueIfNZ = (memory[gameInfo.reconstruct] | (1 << bit));
-            } else {
-                reconstructArmed = false;
-            }
-        }
     } else if (opcode & 0x20) {
         // SLA/SRA and SWAP/SRL
         if (opcode & 0x10) {
@@ -1596,7 +1530,7 @@ void (*opcodes[256])() = {
 /*0..*/    noop1, ld_r_d16, ld_mem_A,  inc_r16,    inc_b,    dec_b,  ld_b_d8,     rlca,  ld_a16_SP, add_HL_r, ld_A_mem,  dec_r16,    inc_c,    dec_c,  ld_c_d8,     rrca,
 /*1..*/  unknown, ld_r_d16, ld_mem_A,  inc_r16,    inc_d,    dec_d,  ld_d_d8,      rla,      noop3, add_HL_r, ld_A_mem,  dec_r16,    inc_e,    dec_e,  ld_e_d8,      rra,
 /*2..*/    jr_nz, ld_r_d16, ld_mem_A,  inc_r16,    inc_h,    dec_h,  ld_h_d8,      daa,       jr_z, add_HL_r, ld_A_mem,  dec_r16,    inc_l,    dec_l,  ld_l_d8,      cpl,
-/*3..*/  noop2_3, ld_r_d16, ld_mem_A,  inc_r16,   inc_HL,   dec_HL, ld_HL_d8,      scf,    noop2_3, add_HL_r, ld_A_mem,  dec_r16,    inc_a,    dec_a,  ld_a_d8,      ccf,
+/*3..*/  jr_cond, ld_r_d16, ld_mem_A,  inc_r16,   inc_HL,   dec_HL, ld_HL_d8,      scf,    jr_cond, add_HL_r, ld_A_mem,  dec_r16,    inc_a,    dec_a,  ld_a_d8,      ccf,
 /*4..*/    noop1,   ld_b_c,   ld_b_d,   ld_b_e,   ld_b_h,   ld_b_l,  ld_b_HL,   ld_b_a,     ld_c_b,    noop1,   ld_c_d,   ld_c_e,   ld_c_h,   ld_c_l,  ld_c_HL,   ld_c_a,
 /*5..*/   ld_d_b,   ld_d_c,    noop1,   ld_d_e,   ld_d_h,   ld_d_l,  ld_d_HL,   ld_d_a,     ld_e_b,   ld_e_c,   ld_e_d,    noop1,   ld_e_h,   ld_e_l,  ld_e_HL,   ld_e_a,
 /*6..*/   ld_h_b,   ld_h_c,   ld_h_d,   ld_h_e,    noop1,   ld_h_l,  ld_h_HL,   ld_h_a,     ld_l_b,   ld_l_c,   ld_l_d,   ld_l_e,   ld_l_h,    noop1,  ld_l_HL,   ld_l_a,
@@ -1605,8 +1539,8 @@ void (*opcodes[256])() = {
 /*9..*/  sub_A_b,  sub_A_c,  sub_A_d,  sub_A_e,  sub_A_h,  sub_A_l, sub_A_HL,  sub_A_a,    sbc_A_b,  sbc_A_c,  sbc_A_d,  sbc_A_e,  sbc_A_h,  sbc_A_l, sbc_A_HL,  sbc_A_a,
 /*a..*/    and_b,    and_c,    and_d,    and_e,    and_h,    and_l,   and_HL,    and_a,      xor_b,    xor_c,    xor_d,    xor_e,    xor_h,    xor_l,   xor_HL,    xor_a,
 /*b..*/     or_b,     or_c,     or_d,     or_e,     or_h,     or_l,    or_HL,     or_a,       cp_b,     cp_c,     cp_d,     cp_e,     cp_h,     cp_l,    cp_HL,     cp_a,
-/*c..*/   ret2_5,  pop_r16,  noop3_4,    noop4,  call3_6, push_r16, add_A_d8,      rst,     ret2_5,     ret4,  noop3_4,      xCB,  call3_6,    call6, adc_A_d8,      rst,
-/*d..*/   ret2_5,  pop_r16,  noop3_4,  unknown,  call3_6, push_r16, sub_A_d8,      rst,     ret2_5,    reti4,  noop3_4,  unknown,  call3_6,  unknown, sbc_A_d8,      rst,
+/*c..*/   ret2_5,  pop_r16,  jp_cond,    noop4,  call3_6, push_r16, add_A_d8,      rst,     ret2_5,     ret4,  jp_cond,      xCB,  call3_6,    call6, adc_A_d8,      rst,
+/*d..*/   ret2_5,  pop_r16,  jp_cond,  unknown,  call3_6, push_r16, sub_A_d8,      rst,     ret2_5,    reti4,  jp_cond,  unknown,  call3_6,  unknown, sbc_A_d8,      rst,
 /*e..*/  ld_a8_A,  pop_r16,  ld_aC_A,  unknown,  unknown, push_r16,   and_d8,      rst,  add_SP_s8,    noop1, ld_a16_A,  unknown,  unknown,  unknown,   xor_d8,      rst,
 /*f..*/  ld_A_a8,  pop_r16,  ld_A_aC,       di,  unknown, push_r16,    or_d8,      rst, ld_HL_SPs8, ld_SP_HL, ld_A_a16,       ei,  unknown,  unknown,    cp_d8,      rst
 };
