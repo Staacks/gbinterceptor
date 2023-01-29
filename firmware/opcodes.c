@@ -510,7 +510,7 @@ void daa() {
 void dec_ ## REGISTER() { \
     *N = 1; \
     (*REGISTER)--; \
-    *H = (*REGISTER & 0x0f == 0x0f); \
+    *H = ((*REGISTER & 0x0f) == 0x0f); \
     *Z = (*REGISTER == 0x00); \
     getNextFromBus(); \
 }
@@ -528,7 +528,7 @@ void dec_HL() {
     getNextFromBus();
     uint8_t data = fromMemory(*hl)-1;
     toMemory(*hl, data);
-    *H = (data & 0x0f == 0x0f);
+    *H = ((data & 0x0f) == 0x0f);
     *Z = (data == 0x00);
     getNextFromBus();
     getNextFromBus();
@@ -580,7 +580,7 @@ void halt() {
 void inc_ ## REGISTER() { \
     *N = 0; \
     (*REGISTER)++; \
-    *H = (*REGISTER & 0x0f == 0x00); \
+    *H = ((*REGISTER & 0x0f) == 0x00); \
     *Z = (*REGISTER == 0x00); \
     getNextFromBus(); \
 }
@@ -598,7 +598,7 @@ void inc_HL() {
     getNextFromBus();
     uint8_t data = fromMemory(*hl)+1;
     toMemory(*hl, data);
-    *H = (data & 0x0f == 0x00);
+    *H = ((data & 0x0f) == 0x00);
     *Z = (data == 0x00);
     getNextFromBus();
     getNextFromBus();
@@ -1188,7 +1188,7 @@ void sbc_A_d8() {
     getNextFromBus();
     uint8_t d8 = *opcode;
     *N = 1;
-    *H = ((*a & 0x0f) < (d8 & 0x0f) - cy);
+    *H = ((*a & 0x0f) < (d8 & 0x0f) + cy);
     *C = (*a < d8 + cy);
     *a -= d8 + cy;
     *Z = (*a == 0);
@@ -1232,7 +1232,7 @@ void sbc_A_ ## REGISTER() { \
     else \
         cy = 0; \
     *N = 1; \
-    *H = ((*a & 0x0f) < (*REGISTER & 0x0f) - cy); \
+    *H = ((*a & 0x0f) < (*REGISTER & 0x0f) + cy); \
     *C = (*a < *REGISTER + cy); \
     *a -= *REGISTER + cy; \
     *Z = (*a == 0); \
@@ -1256,7 +1256,7 @@ void sbc_A_HL() {
     getNextFromBus();
     uint8_t v = fromMemory(*hl);
     *N = 1;
-    *H = ((*a & 0x0f) < (v & 0x0f) - cy);
+    *H = ((*a & 0x0f) < (v & 0x0f) + cy);
     *C = (*a < v + cy);
     *a -= v + cy;
     *Z = (*a == 0);
