@@ -276,7 +276,13 @@ void handleMemoryBus() { //To be executed on second core
                         cartridgeDMA = false;
                 }
                 ignoreCycles--;
-                if (ignoreCycles == 0) { //We are done, but we now have to look for a return instruction to sync back up with the CPU which was doing unknown instructions during DMA
+                if (ignoreCycles == 10) { //Some games copy some HRAM/IO addresses during DMA (Tetris 2). We do this a few cycles before DMA ends.
+                    for (uint i = 0; i < DMA_REGISTER_MAP_SIZE; i += 2) {
+                        if (gameInfo.writeRegistersDuringDMA[i] == 0x00)
+                            break;
+                        toMemory(0xff00 | gameInfo.writeRegistersDuringDMA[i+1], memory[0xff00 | gameInfo.writeRegistersDuringDMA[i]]); //Note: Using fromMemory does not make sense here because it would try to use the opcode data filled in by getNextFromBus, which is not relevant as we are not seeing correct addresses on the bus.
+                    }
+                } else if (ignoreCycles == 0) { //We are done, but we now have to look for a return instruction to sync back up with the CPU which was doing unknown instructions during DMA
                     bool synchronized = false;
                     int wait = 0;
                     while (!synchronized) {

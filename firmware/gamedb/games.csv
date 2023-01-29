@@ -1206,7 +1206,7 @@
 "0xce81b682", "0x1bbe71a3", "Tetris FLASH",       "",      "Tetris Flash (Japan)"
 "0x97730a2d", "0xff371d07", "Tetris PLUS",        "",      "Tetris Plus (Japan), Tetris Plus (USA, Europe)"
 "0xe7a835f6", "0xd7f04443", "Tetris SET",         "",      "Mani 4 in 1 (China) (DMG-601 CHN)"
-"0xd296c585", "0x6698e149", "Tetris 2",           "",      "Tetris 2 (USA), Tetris 2 (USA, Europe)"
+"0xd296c585", "0x6698e149", "Tetris 2",           "writeRegistersDuringDMA(0xff, 0xa8, 0xff, 0xa9, 0xaa, 0x42, 0xab, 0x43, 0xac, 0x4a, 0xad, 0x4b, 0xae, 0x47, 0xaf, 0x48, 0xb0, 0x49, 0xb1, 0x40)", "Tetris 2 (USA), Tetris 2 (USA, Europe)"
 "0xa91da2e7", "0x0378dcb4", "THE CHESSMASTE",     "",      "Chessmaster, The (DMG-EM) (Europe)"
 "0xe3ae2aae", "0x40747cac", "THE CHESSMASTE",     "",      "Chessmaster, The (DMG-N5) (USA) (Rev A), Chessmaster, The (DMG-N5) (USA)"
 "0x18d644d3", "0xb59af815", "THE FIDGETTS",       "",      "Fidgetts, The (USA, Europe) (En,Fr,De,Es,It,Nl,Sv)"

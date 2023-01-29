@@ -15,6 +15,7 @@ import sys
 gameInfos = []
 gameInfosDirectory = []
 maxBranchBasedFixCount = 0
+maxRegisterDuringDMACount = 0
 
 with open('games.csv') as csvfile:
     reader = csv.DictReader(csvfile, delimiter=',', quotechar='"', skipinitialspace=True)
@@ -50,6 +51,11 @@ with open('games.csv') as csvfile:
                     gameInfo["branchBasedFixes"].append(branchBasedFix)
                     if len(gameInfo["branchBasedFixes"]) > maxBranchBasedFixCount:
                         maxBranchBasedFixCount = len(gameInfo["branchBasedFixes"])
+                elif parts[1].lower() == "writeRegistersDuringDMA".lower():
+                    registerDuringDMAParameters = parts[2].split(",")
+                    if len(registerDuringDMAParameters) > maxRegisterDuringDMACount:
+                        maxRegisterDuringDMACount = len(registerDuringDMAParameters)
+                    gameInfo["writeRegistersDuringDMA"] = parts[2]
                 else:
                     print("Unknown fix: " + fix, file=sys.stderr)
         gameInfo["comment"] = row["comment"]
@@ -84,6 +90,7 @@ for gameInfo in gameInfos:
         print(".notTakenValue = " + branchBasedFix["notTakenValue"], end="")
         print("}, ", end="")
     print("}, ", end="")
+    print(".writeRegistersDuringDMA = {" + gameInfo.get("writeRegistersDuringDMA", "") + "}, ", end="")
     print(".title = \"" + gameInfo["title"] + "\", " + " "*(18-len(gameInfo["title"])), end="")
     print("}, // " + gameInfo["comment"])
 
@@ -93,5 +100,5 @@ print("uint16_t gameInfoDirectory[257] = {")
 print("    " + ", ".join(map(str, gameInfosDirectory)))
 print("};")
 print("#endif")
-print("All done. Make sure that BRANCH_BASED_FIX_LIST_SIZE is at least " + str(maxBranchBasedFixCount) + " in game_detection.h.", file=sys.stderr)
+print("All done. Make sure that BRANCH_BASED_FIX_LIST_SIZE is at least " + str(maxBranchBasedFixCount) + " and DMA_REGISTER_MAP_SIZE is at least " + str(maxRegisterDuringDMACount) + " in game_detection.h.", file=sys.stderr)
 

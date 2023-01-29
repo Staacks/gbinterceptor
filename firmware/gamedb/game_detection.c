@@ -15,6 +15,7 @@ void resetHashes() {
     gameInfo.dmaFix = 0x0000;
     gameInfo.useImmediateIRQ = false;
     gameInfo.branchBasedFixes[0].jumpAddress = 0x0000;
+    gameInfo.writeRegistersDuringDMA[0] = 0x00;
 
     vramHash1 = 0;
     vramHash2 = 0;
