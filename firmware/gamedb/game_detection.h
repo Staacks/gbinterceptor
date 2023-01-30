@@ -6,7 +6,7 @@
 #define BRANCH_BASED_FIX_LIST_SIZE 3
 #define DMA_REGISTER_MAP_SIZE 20
 
-typedef enum {nop, set, and, or, xor} FixMethod;
+typedef enum {nop, set, and, or, xor, sync} FixMethod;
 
 typedef struct {
     uint16_t jumpAddress;

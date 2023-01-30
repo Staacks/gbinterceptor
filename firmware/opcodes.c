@@ -47,6 +47,10 @@ void applyBranchBasedFixes(uint opcodeAddress, bool jumpTaken) {
                 case xor:
                     memory[gameInfo.branchBasedFixes[0].fixTarget] ^= value;
                     break;
+                case sync:
+                    setOffsetToLine(value);
+                    vblankOffset = syncOffset;
+                    break;
             }
         }
     }
