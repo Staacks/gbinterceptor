@@ -39,6 +39,10 @@ with open('games.csv') as csvfile:
                     gameInfo["dmaFix"] = parts[2]
                 elif parts[1].lower() == "useImmediateIRQ".lower():
                     gameInfo["useImmediateIRQ"] = parts[2]
+                elif parts[1].lower() == "disableStatSyncs".lower():
+                    gameInfo["disableStatSyncs"] = parts[2]
+                elif parts[1].lower() == "disableLySyncs".lower():
+                    gameInfo["disableLySyncs"] = parts[2]
                 elif parts[1].lower() == "branchBasedFix".lower():
                     branchBasedFixParameters = parts[2].split(",")
                     branchBasedFix = {}
@@ -79,6 +83,8 @@ for gameInfo in gameInfos:
     print(".vramHash2 = " + gameInfo["vramHash2"] + ", ", end="")
     print(".dmaFix = " + gameInfo.get("dmaFix", "0x0000") + ", ", end="")
     print(".useImmediateIRQ = " + gameInfo.get("useImmediateIRQ", "false") + ", ", end="")
+    print(".disableStatSyncs = " + gameInfo.get("disableStatSyncs", "false") + ", ", end="")
+    print(".disableLySyncs = " + gameInfo.get("disableLySyncs", "false") + ", ", end="")
     print(".branchBasedFixes = {", end="")
     for branchBasedFix in gameInfo["branchBasedFixes"]:
         print("{", end="")

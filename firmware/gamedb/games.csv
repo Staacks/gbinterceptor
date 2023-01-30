@@ -1014,7 +1014,7 @@
 "0xe000f800", "0xc9367c00", "SAGAIA",             "",      "Mani 4 in 1 (China) (DMG-602 CHN), Sagaia (Japan), Taito Variety Pack (Japan)"
 "0x3717b049", "0x4a2c8abf", "SAIYUUKI",           "",      "Pachinko Saiyuuki (Japan)"
 "0x43ac9274", "0x3ab63d48", "SAME GAME",          "",      "Same Game (Japan)"
-"0xe19e4681", "0x68928a06", "SAMURAI SHODOW",     "",      "Samurai Shodown (USA, Europe) (Beta), Samurai Shodown (USA, Europe)"
+"0xe19e4681", "0x68928a06", "Samurai Shodown",    "branchBasedFix(0x0526, 3, nop, 0x00, sync, 0x00)", "Samurai Shodown (USA, Europe) (Beta), Samurai Shodown (USA, Europe)"
 "0xd3c0b963", "0xf8f19043", "SANGOKUSHI",         "",      "Sangokushi - Game Boy Ban (Japan)"
 "0x4b5c9da9", "0xd9c8e39f", "SANRIO CARNIVA",     "",      "Sanrio Carnival 2 (Japan)"
 "0x59358f2c", "0xecbedb0e", "SANRIO CARNIVA",     "",      "Sanrio Carnival (Japan)"

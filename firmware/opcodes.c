@@ -36,20 +36,20 @@ void applyBranchBasedFixes(uint opcodeAddress, bool jumpTaken) {
             switch (method) {
                 case nop: break;
                 case set:
-                    memory[gameInfo.branchBasedFixes[0].fixTarget] = value;
+                    memory[gameInfo.branchBasedFixes[i].fixTarget] = value;
                     break;
                 case and:
-                    memory[gameInfo.branchBasedFixes[0].fixTarget] &= value;
+                    memory[gameInfo.branchBasedFixes[i].fixTarget] &= value;
                     break;
                 case or:
-                    memory[gameInfo.branchBasedFixes[0].fixTarget] |= value;
+                    memory[gameInfo.branchBasedFixes[i].fixTarget] |= value;
                     break;
                 case xor:
-                    memory[gameInfo.branchBasedFixes[0].fixTarget] ^= value;
+                    memory[gameInfo.branchBasedFixes[i].fixTarget] ^= value;
                     break;
                 case sync:
                     setOffsetToLine(value);
-                    vblankOffset = syncOffset;
+                    vblankOffset = syncOffset + (int16_t)gameInfo.branchBasedFixes[i].fixTarget;
                     break;
             }
         }
@@ -127,10 +127,12 @@ uint8_t static inline fromMemory(uint16_t addr) {
                     //However, since mode 0, 2 and 3 occur multiple time throughout a frame and only help if we already have a good synch, we only look at loops that wait for mode 1 (vblank).
                     //This has a one specific kind of loop in mind: Read STAT into A, mask the mode bit (0x03), compare to the mode we are waiting for and then conditionally jump back if the result is non-zero
                     //Honestly, this is just what I did for my Wifi cartridge and I am not sure if it is that common to do. But so far all other games were synched well enough through the vsync interrupt and a tight loop waiting for LY
-                    syncArmed = true;
-                    statSyncStage = 1;
-                    lySyncStage = 0;
-                    syncReferenceCycle = cycleIndex;
+                    if (!gameInfo.disableStatSyncs) {
+                        syncArmed = true;
+                        statSyncStage = 1;
+                        lySyncStage = 0;
+                        syncReferenceCycle = cycleIndex;
+                    }
                     if (y >= SCREEN_H)
                         return 1;
                     else
@@ -141,10 +143,12 @@ uint8_t static inline fromMemory(uint16_t addr) {
                     //This is a very naive approach with DOnkey Kong Land in mind:
                     //LY is read periodically and compared to a for a nz jump. We can probably assume that LY will always be compared to a and that it makes sense for a tight loop to load the value for a before entering the loop.
                     //So, we remember the value of a here as the y coordinate at which our PPU should be now and note the difference to the actual ppu cycle. We then use a later JR jump (within three cycles) if it is not taken to apply the difference as vsync correction.
-                    syncArmed = true;
-                    statSyncStage = 0;
-                    lySyncStage = 1;
-                    syncReferenceCycle = cycleIndex;
+                    if (!gameInfo.disableLySyncs) {
+                        syncArmed = true;
+                        statSyncStage = 0;
+                        lySyncStage = 1;
+                        syncReferenceCycle = cycleIndex;
+                    }
                     return y;
     }
     if (*address != addr && ((addr & 0xe000) == 0x8000)) {
