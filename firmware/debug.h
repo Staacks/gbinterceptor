@@ -119,7 +119,7 @@ void printPPUTiming();
     }
 
 #define DEBUG_MARK_VBLANK_ADJUST \
-    if (recordPPUTiming) { \
+    if (recordPPUTiming && ppuTimingEvents.vblankOffset == 0) { \
         ppuTimingEvents.vblankOffset = vblankOffset; \
     }
 
