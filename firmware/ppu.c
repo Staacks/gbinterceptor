@@ -33,8 +33,9 @@ uint gameDetectedInfoTimeLeft = 0;
 #define GAME_DETECTED_INFO_DURATION 100; //Duration of the mode info in frames
 
 uint lineCycle = 0;
-int x = 0;
-int y = 0;
+int x = 0;  //LX
+int y = 0;  //LY
+int wy = 0; //Window LY
 volatile enum RenderState renderState;
 bool inWindowRange;
 int volatile vblankOffset = 0; //Set a non zero value if synchronization needs to be adjusted
@@ -161,7 +162,7 @@ void renderBGTiles() {
 
 void renderWindowTiles() {
     const uint8_t windowX = x + 7 - memory[0xff4B];
-    const uint8_t windowY = y - memory[0xff4A];
+    const uint8_t windowY = wy - memory[0xff4A];
     const uint8_t tileIndex = memory[(windowTileMap9C00 ? 0x9c00 : 0x9800) | (((uint16_t)windowY & 0x00f8) << 2) | (windowX >> 3)];
     const uint16_t tileAddress = (0x8000 | (tileIndex << 4) | (tileData8000 || tileIndex > 0x7f ? 0x0000 : 0x1000)) + ((windowY << 1) & 0x0f);
     const uint16_t lowerTileData = memory[tileAddress];
@@ -399,8 +400,11 @@ void ppuStep(uint advance) { //Note that due to USB interrupts on this core we m
             scanIndex = 0;
             inWindowRange = false;
             y++;
+            if (windowEnable)
+                wy++;
             if (y >= LINES) {
                 y = 0;
+                wy = 0;
                 DEBUG_MARK_YRESET
             }
             renderState = (y >= SCREEN_H) ? done : start;
