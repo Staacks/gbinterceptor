@@ -345,7 +345,7 @@
 "0x979e9919", "0x62d702ce", "FLINTSTONES",        "",      "Flintstones, The - King Rock Treasure Island (USA, Europe)"
 "0x92380bab", "0xa95c0bea", "FLIPULL",            "",      "Flipull (USA)"
 "0x95398e2a", "0x8d75539c", "FLIPULL",            "",      "Flipull (Japan)"
-"0x76e80730", "0x69967648", "FLYING WARRIOR",     "",      "Fighting Simulator 2 in 1 (USA, Europe)"
+"0x76e80730", "0x69967648", "Fighting Simulator",     "branchBasedFix(0x46ff, 0xc316, or, 0x10, and, 0xef) | branchBasedFix(0x46ff, 0xc316, and, 0xdf, or, 0x20)", "Fighting Simulator 2 in 1 (USA, Europe)"
 "0xfcd40ea1", "0xe5d32245", "FOOTBALL INT'L",     "",      "Football International (Europe)"
 "0x6dc6a299", "0x850c68c7", "FOREMAN FOR RE",     "",      "Foreman for Real (Japan)"
 "0x789b4efc", "0xa3e6084c", "FOREMAN FOR RE",     "",      "Foreman for Real (USA, Europe)"
