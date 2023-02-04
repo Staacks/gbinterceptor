@@ -21,7 +21,7 @@ uint32_t * backIterator = NULL;
 uint32_t * backEnd = NULL;
 
 bool dmgColorMode = false;
-bool frameBlending = false;
+uint frameBlending = 1;
 uint8_t contrastFactor;
 
 //On-screen display (text) state
@@ -132,13 +132,20 @@ void showGameDetectedInfo(const char * title) {
 }
 
 void switchRenderMode() {
-    if (dmgColorMode) {
-        dmgColorMode = false;
-        frameBlending = !frameBlending;
-        modeInfo.text = frameBlending ? "Blending ON" : "Blending OFF";
-        modeInfoTimeLeft = MODE_INFO_DURATION;
-    } else
-        dmgColorMode = true;
+    frameBlending += 1;
+    if (frameBlending > 2) {
+        frameBlending = 0;
+        dmgColorMode = !dmgColorMode;
+    }
+    switch (frameBlending) {
+        case 0: modeInfo.text = "Blending OFF";
+                break;
+        case 1: modeInfo.text = "Blending LOW";
+                break;
+        case 2: modeInfo.text = "Blending HIGH";
+                break;
+    }
+    modeInfoTimeLeft = MODE_INFO_DURATION;
 }
 
 void renderBGTiles() {
@@ -358,13 +365,28 @@ void inline startBackbufferBlend() {
 
 void inline continueBackbufferBlend() {
     if (backIterator < backEnd) {
-        for (int i = 0; i < 16; i++) {
-            if (frameBlending)
-                *readyIterator = ((*readyIterator & 0xfefefefe) >> 1) + ((*backIterator & 0xfefefefe) >> 1);
-            else
-                *readyIterator = *backIterator; //Not really efficient, but frame blending is the default as we only show slightly less than 30fps and the option to disable frame blending is mostly here for comparison
-            readyIterator++;
-            backIterator++;
+        switch (frameBlending) {
+            case 0:
+                for (int i = 0; i < 16; i++) {
+                    *readyIterator = *backIterator; //Not really efficient, but frame blending is the default as we only show slightly less than 30fps and the option to disable frame blending is mostly here for comparison
+                    readyIterator++;
+                    backIterator++;
+                }
+                break;
+            case 1:
+                for (int i = 0; i < 16; i++) {
+                    *readyIterator = ((*readyIterator & 0xfcfcfcfc) >> 2) + 3*((*backIterator & 0xfcfcfcfc) >> 2);
+                    readyIterator++;
+                    backIterator++;
+                }
+                break;
+            case 2:
+                for (int i = 0; i < 16; i++) {
+                    *readyIterator = ((*readyIterator & 0xfcfcfcfc) >> 1) + ((*backIterator & 0xfcfcfcfc) >> 1);
+                    readyIterator++;
+                    backIterator++;
+                }
+                break;
         }
         if (backIterator == backEnd)
             readyBufferIsNew = true;
