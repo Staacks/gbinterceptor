@@ -696,7 +696,7 @@
 "0x8ca509c5", "0x507ba749", "MM ULT CHALLEN",     "",      "Mickey's Ultimate Challenge (USA, Europe)"
 "0x52209df5", "0x041127aa", "MOGU MOGU Q",        "",      "Oyatsu Quiz Mogu Mogu Q (Japan)"
 "0x813e41c3", "0x28161601", "MOGURA DE PON!",     "",      "Mogura de Pon! (Japan)"
-"0x69d590e9", "0xda3d4db0", "MOGURANYA",          "",      "Mole Mania (USA, Europe)"
+"0x69d590e9", "0xda3d4db0", "MOGURANYA",          "useImmediateIRQ(true)", "Mole Mania (USA, Europe)"
 "0x75fdd3a0", "0xb9b4a6e0", "MOGURANYA",          "",      "Moguranya (Japan)"
 "0x7b8faa2a", "0xa1b7421b", "MOMOCOL",            "",      "Momotarou Collection (Japan)"
 "0x71aabeb9", "0x99e5a5f7", "MOMOTARO DENGE",     "",      "Momotarou Dengeki (Japan)"
