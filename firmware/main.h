@@ -6,6 +6,6 @@
 #define LED_SWITCH_PIN 1
 #define LED_PIN_MASK 0x02
 
-#define VERSION "1.1.0-alpha1"
+#define VERSION "1.1.0"
 
 #endif
