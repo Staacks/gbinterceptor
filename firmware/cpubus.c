@@ -310,15 +310,18 @@ void handleMemoryBus() { //To be executed on second core
             //Detect interrupts
             if   ( (history[readAheadIndex] & 0x0000ffc7) == 0x0040             //fifth instruction continues from 0x0040, 0x0048, 0x0050, 0x0058 or 0x0060 (this bitmask permits some rare and unlikely edge cases)
                 && (uint16_t)history[(uint8_t)(readAheadIndex-2)] == sp-1       //third instruction has address of decremented stack pointer
-                && (uint16_t)history[(uint8_t)(readAheadIndex-1)] == sp-2       //fourth instruction has decremented it even further
-                && (uint16_t)history[readAheadIndex] != *address+2) {           //The PC has jumped compared to the fifth instruction (see below, this check is almost redundant after the first one and should only capture the last edge cases.) 
+                && (uint16_t)history[(uint8_t)(readAheadIndex-1)] == sp-2) {    //fourth instruction has decremented it even further
                 // This is an interrupt. These are tricky to catch as two seemingly random reads are done first
                 // which can easily be mistaken for opcodes that are actully executed. This is why we do the read
                 // ahead, so we can see if the instruction after the next one reads the sp register. Additionally,
                 // the one after that should read a decremented sp register, which should set this appart from
                 // other sp related instructions except for a call or push.
-                // Finally, we need to check that we actually jump instead of executing the next opcode, because
-                // otherwise it could be mixed up with any 1 cycle opcode followed by a push. (Hence *address+2 as last check above.)
+                // Originally, there also was a check that we actually jump instead of executing the next opcode, because
+                // otherwise it could be mixed up with any 1 cycle opcode followed by a push. However, this only would
+                // be a problem if the 1 cycle opcode and push are the instruction before an interrupt entry point and it
+                // is very unlikely that a game does that. Instead, there is Tiny Toons Bab's Big Break, which actually
+                // executes some code before 0x0048 and sometimes manages to call the interrupt just when it is at 0x0046
+                // breaking the old detection and crashing the game.
                 // The good news is that we only need to do the sp operation and burn five cycles in total. It should
                 // be quite rare that we need to do more than the first check and if all succeed we can catch up.
                 
