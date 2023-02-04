@@ -299,7 +299,7 @@ void handleMemoryBus() { //To be executed on second core
                         }
                         getNextFromBus();
                         wait++;
-                        if (wait > 20) {
+                        if (wait > 100) {
                             stop("Could not find a ret after DMA.");
                             break;
                         }
