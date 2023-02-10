@@ -1,8 +1,8 @@
 # GB Interceptor Case
 
-These are various resources and design files for cases for the GB Interceptor. The 3d-printed one referenced in the Youtube videos and the build guide [build guide](https://github.com/Staacks/gbinterceptor/wiki/Build-guide) can be found in the folder 3dprint. Others have been contributed by users and are mentioned below.
+These are various resources and design files for cases for the GB Interceptor. The 3d-printed one referenced in the Youtube videos and the build guide [build guide](https://github.com/Staacks/gbinterceptor/wiki/Build-guide) can be found in the folder 3dprint. 
 
-The easiest way to pick the right case for yourself is probably by looking at the [case guides](https://github.com/Staacks/gbinterceptor/wiki#case-options) on the Wiki.
+**You can find more options by the community by looking at the [case guides](https://github.com/Staacks/gbinterceptor/wiki#case-options) on the Wiki.**
 
 # Important note about the break-out extension board
 
