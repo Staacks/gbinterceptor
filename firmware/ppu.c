@@ -369,21 +369,21 @@ void inline continueBackbufferBlend() {
     if (backIterator < backEnd) {
         switch (frameBlending) {
             case 0:
-                for (int i = 0; i < 16; i++) {
+                for (int i = 0; i < 160; i++) {
                     *readyIterator = *backIterator; //Not really efficient, but frame blending is the default as we only show slightly less than 30fps and the option to disable frame blending is mostly here for comparison
                     readyIterator++;
                     backIterator++;
                 }
                 break;
             case 1:
-                for (int i = 0; i < 16; i++) {
+                for (int i = 0; i < 160; i++) {
                     *readyIterator = ((*readyIterator & 0xfcfcfcfc) >> 2) + 3*((*backIterator & 0xfcfcfcfc) >> 2);
                     readyIterator++;
                     backIterator++;
                 }
                 break;
             case 2:
-                for (int i = 0; i < 16; i++) {
+                for (int i = 0; i < 160; i++) {
                     *readyIterator = ((*readyIterator & 0xfcfcfcfc) >> 1) + ((*backIterator & 0xfcfcfcfc) >> 1);
                     readyIterator++;
                     backIterator++;
