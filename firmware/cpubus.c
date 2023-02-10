@@ -341,6 +341,10 @@ void handleMemoryBus() { //To be executed on second core
                         vblankOffset = (144 - y) * CYCLES_PER_LINE - lineCycle - 6;
                         if (vblankOffset > CYCLES_PER_FRAME/2)
                             vblankOffset -= CYCLES_PER_FRAME;
+                    } else if (*address == 0x0048 && ((memory[0xff41] & 0b01111000) == 0b01000000)) { //STAT interrupt for LY = LYC. That's helpful.
+                        vblankOffset = (memory[0xff45] - y) * CYCLES_PER_LINE - lineCycle - 6;
+                        if (vblankOffset > CYCLES_PER_FRAME/2)
+                            vblankOffset -= CYCLES_PER_FRAME;
                     }
                 }
                 interruptsEnabled = false;
