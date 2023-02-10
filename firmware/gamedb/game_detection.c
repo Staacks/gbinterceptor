@@ -16,6 +16,7 @@ void resetHashes() {
     gameInfo.useImmediateIRQ = false;
     gameInfo.disableStatSyncs = false;
     gameInfo.disableLySyncs = false;
+    gameInfo.windowLineAlwaysPauses = false;
     gameInfo.branchBasedFixes[0].jumpAddress = 0x0000;
     gameInfo.writeRegistersDuringDMA[0] = 0x00;
 

@@ -23,6 +23,7 @@ typedef struct {
     bool useImmediateIRQ; //Use vblank IRQ to sync the PPU even if it occured immediately after enabling interrupts, so it might have been delayed.
     bool disableStatSyncs; //Do not use stat register related tight loops for sync
     bool disableLySyncs; //Do not use stat register related tight loops for sync
+    bool windowLineAlwaysPauses; //Used if window is disabled so close to the y=0 reset that we might miss that it has been enabled. In this case its internal counter still has to be initialized to zero so that its line counter actually pauses until the window is enabled again
     BranchBasedFix branchBasedFixes[BRANCH_BASED_FIX_LIST_SIZE]; //List of memory addresses of conditional jumps and how their branching behavior should set values in memory
     uint8_t writeRegistersDuringDMA[DMA_REGISTER_MAP_SIZE]; //Sequence of HRAM/IO addresses. Write the first to the second, the third to the fourth etc. during DMA
     char title[19];

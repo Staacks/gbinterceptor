@@ -2,9 +2,11 @@
 
 #include "cpubus.h"
 #include "debug.h"
-//A bit excessive, but we have enough memory and can save on cycles by just letting the uint8 index overflow to achieve a ring buffer (at least I think that this would be faster)
+
 #include "hardware/interp.h"
 #include <stdio.h>
+
+#include "gamedb/game_detection.h"
 
 #include "font/font8x8_basic.h"
 
@@ -422,12 +424,20 @@ void ppuStep(uint advance) { //Note that due to USB interrupts on this core we m
             scanIndex = 0;
             inWindowRange = false;
             y++;
-            if (windowEnable)
-                wy++;
             if (y >= LINES) {
                 y = 0;
-                wy = 0;
+                wy = gameInfo.windowLineAlwaysPauses ? 0 : -1;
                 DEBUG_MARK_YRESET
+            }
+            if (windowEnable) {
+                //I could not find solid information about this, but comparing the behaviour of the banners in Samurai Shodown
+                //and the credit banners in Prehistoric Man it seems that turning the window on midframe has the same effect as
+                //if it had been all along (i.e. its internal counter equals LY). Only if it is turned off midframe and then
+                //turned on again its internal line counter falls behind LY by the number of lines it has been turned off.
+                if (wy < 0)
+                    wy = y;
+                else
+                    wy++;
             }
             renderState = (y >= SCREEN_H) ? done : start;
         }

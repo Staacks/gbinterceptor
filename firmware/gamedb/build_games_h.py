@@ -43,6 +43,8 @@ with open('games.csv') as csvfile:
                     gameInfo["disableStatSyncs"] = parts[2]
                 elif parts[1].lower() == "disableLySyncs".lower():
                     gameInfo["disableLySyncs"] = parts[2]
+                elif parts[1].lower() == "windowLineAlwaysPauses".lower():
+                    gameInfo["windowLineAlwaysPauses"] = parts[2]
                 elif parts[1].lower() == "branchBasedFix".lower():
                     branchBasedFixParameters = parts[2].split(",")
                     branchBasedFix = {}
@@ -85,6 +87,7 @@ for gameInfo in gameInfos:
     print(".useImmediateIRQ = " + gameInfo.get("useImmediateIRQ", "false") + ", ", end="")
     print(".disableStatSyncs = " + gameInfo.get("disableStatSyncs", "false") + ", ", end="")
     print(".disableLySyncs = " + gameInfo.get("disableLySyncs", "false") + ", ", end="")
+    print(".windowLineAlwaysPauses = " + gameInfo.get("windowLineAlwaysPauses", "false") + ", ", end="")
     print(".branchBasedFixes = {", end="")
     for branchBasedFix in gameInfo["branchBasedFixes"]:
         print("{", end="")
