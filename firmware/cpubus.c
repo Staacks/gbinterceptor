@@ -208,7 +208,7 @@ void getNextFromBus() {
                     history[readAheadIndex] = history[(uint8_t)(readAheadIndex-1)];
                     rawBusData = history[*historyIndex];
                     substitudeBusdataFromMemory();
-                    if (delayedOpcodeCount > CYCLES_PER_FRAME) {
+                    if (delayedOpcodeCount > 2*CYCLES_PER_FRAME) {
                         //This should not happen unless the Game Boy has been turned off.
                         //I can imaginge that a game could wait indefinitely for a gamepad input (can it?), but not using vblank to have anything active on the screen would be unusual.
                         //If we find a game that waits longer than one frame, we need to check which interrupts are enabled and will not have a chance to determine if the Game Boy was turned off if only the gamepad interrupt is enabled.
