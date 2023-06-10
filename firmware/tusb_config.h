@@ -102,8 +102,15 @@
 // The number of video streaming interfaces
 #define CFG_TUD_VIDEO_STREAMING  1
 
+//Bulk transfer mode (in contrast to isochronous mode)
+#define CFG_TUD_VIDEO_STREAMING_BULK 0
+
 // video streaming endpoint size
-#define CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE  1023
+#if CFG_TUD_VIDEO_STREAMING_BULK == 0
+    #define CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE  256
+#else
+    #define CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE  1023
+#endif
 
 #define CFG_TUD_CDC_RX_BUFSIZE   (TUD_OPT_HIGH_SPEED ? 512 : 64)
 #define CFG_TUD_CDC_TX_BUFSIZE   (TUD_OPT_HIGH_SPEED ? 512 : 64)
