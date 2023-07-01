@@ -1,38 +1,33 @@
 #include "ppu.h"
 
 #include "cpubus.h"
+#include "jpeg/jpeg.h"
 #include "debug.h"
 
 #include "hardware/interp.h"
+
 #include <stdio.h>
 
 #include "gamedb/game_detection.h"
 
-#include "font/font8x8_basic.h"
-
+//The following buffer1 to buffer4 are just place holders and their meanings change as the pointers frontBuffer, readyBuffer, backBuffer and lastBuffer point to them.
+//The PPU renders into the backBuffer in one byte per pixel format. When a frame has been completed, the backBuffer data is converted to JPEG and written to the readyBuffer.
+//If frame blending is enabled, the backBuffer data is mixed with the lastBuffer in the same step whlie creating the JPEG data.
+//When next rendering starts, backBuffer and lastBuffer are swapped, so we can keep a copy of the last frame for frame blending.
+//Whenever a new USB frame is to be sent, frontBuffer and readyBuffer are swapped and the frontBuffer is sent. This way a new frame can be converted to JPEG while USB is still sending data.
 uint8_t buffer1[FRAME_SIZE];
 uint8_t buffer2[FRAME_SIZE];
 uint8_t buffer3[SCREEN_SIZE];
-uint8_t volatile * frontBuffer = buffer1; //Sending via USB
-uint8_t volatile * readyBuffer = buffer2; //Ready to start USB transfer even if we are not currently ready to swap the backBuffer
+uint8_t buffer4[SCREEN_SIZE];
+uint8_t volatile * frontBuffer = buffer1; //Data that is currently (or just has been) transmitted via USB, complete JPEG file
+uint8_t volatile * readyBuffer = buffer2; //Ready to start next USB transfer while we are still rendering to the backbuffer, complete JPEG file
 uint8_t volatile * backBuffer = buffer3;  //We render into this one
+uint8_t volatile * lastBuffer = buffer4;  //Copy of last back buffer for frame blending
+
 uint8_t * backBufferLine = buffer3;
 bool readyBufferIsNew = false;
-uint32_t * readyIterator = NULL;
-uint32_t * backIterator = NULL;
-uint32_t * backEnd = NULL;
 
-bool dmgColorMode = false;
-uint frameBlending = 1;
-uint8_t contrastFactor;
-
-//On-screen display (text) state
-struct OnScreenDisplayText modeInfo; //Info when mode button is pressed
-uint modeInfoTimeLeft = 0;
-#define MODE_INFO_DURATION 50; //Duration of the mode info in frames
-struct OnScreenDisplayText gameDetectedInfo; //Info when the game has been detected
-uint gameDetectedInfoTimeLeft = 0;
-#define GAME_DETECTED_INFO_DURATION 100; //Duration of the mode info in frames
+bool frameBlending = true;
 
 uint lineCycle = 0;
 int x = 0;  //LX
@@ -87,67 +82,21 @@ void prepareInterpolatorConfigs() {
     interp_config_set_shift(&cfgUnmasked1, 1);
 }
 
-void setBufferUVColors() {
-    if (dmgColorMode) {
-        contrastFactor = DMG_CONTRAST_FACTOR;
-        for (int i = SCREEN_SIZE; i < FRAME_SIZE; i+=2) {
-            buffer1[i] = DMG_COLOR_U;
-            buffer2[i] = DMG_COLOR_U;
-            buffer1[i+1] = DMG_COLOR_V;
-            buffer2[i+1] = DMG_COLOR_V;
-        }
-    } else {
-        contrastFactor = CONTRAST_FACTOR;
-        for (int i = SCREEN_SIZE; i < FRAME_SIZE; i+=2) {
-            buffer1[i] = COLOR_U;
-            buffer2[i] = COLOR_U;
-            buffer1[i+1] = COLOR_V;
-            buffer2[i+1] = COLOR_V;
-        }
-    }
-}
-
 void ppuInit() {
-    modeInfoTimeLeft = 0;
-    modeInfo.x = 10;
-    modeInfo.y = 10;
-    modeInfo.width = 0;
-
-    gameDetectedInfoTimeLeft = 0;
-    gameDetectedInfo.x = 3;
-    gameDetectedInfo.y = 132;
-    gameDetectedInfo.width = 0;
-
-    //Fill UV part of NV12 encoding with gray
-    setBufferUVColors();
-
     prepareInterpolatorConfigs();
     interp_set_config(interp0, 0, &cfgMasked0);
     interp_set_config(interp0, 1, &cfgUnmasked0);
     interp_set_config(interp1, 0, &cfgMasked1);
     interp_set_config(interp1, 1, &cfgUnmasked1);
-}
 
-void showGameDetectedInfo(const char * title) {
-    gameDetectedInfoTimeLeft = GAME_DETECTED_INFO_DURATION;
-    gameDetectedInfo.text = title;
-}
+    readyBufferIsNew = false;
+    renderState = start;
+    y = 0;
+    x = 0;
+    lineCycle = 0;
 
-void switchRenderMode() {
-    frameBlending += 1;
-    if (frameBlending > 2) {
-        frameBlending = 0;
-        dmgColorMode = !dmgColorMode;
-    }
-    switch (frameBlending) {
-        case 0: modeInfo.text = "Blending OFF";
-                break;
-        case 1: modeInfo.text = "Blending LOW";
-                break;
-        case 2: modeInfo.text = "Blending HIGH";
-                break;
-    }
-    modeInfoTimeLeft = MODE_INFO_DURATION;
+    fillBufferWithBaseJpeg(buffer1);
+    fillBufferWithBaseJpeg(buffer2);
 }
 
 void renderBGTiles() {
@@ -164,7 +113,7 @@ void renderBGTiles() {
     for (int xi = x + 7; xi >= x && xi >= 0; xi--, interp0_hw->pop[1], interp1_hw->pop[1]) {
         if (xi < SCREEN_W) {
             pixelSourceOnLine[xi] = interp0_hw->peek[0] | interp1_hw->peek[0];
-            backBufferLine[xi] = paletteBG[pixelSourceOnLine[xi]]; //For now just the palette index as it will remain relevant when drawing sprites
+            backBufferLine[xi] = paletteBG[pixelSourceOnLine[xi]];
         }
     }
 }
@@ -283,125 +232,21 @@ void oamSearch() {
     }
 }
 
-void inline renderOSDCharacter(char i, uint x, uint y, volatile uint8_t * targetBuffer, uint8_t fgColor, uint8_t bgColor) {
-    for (uint yi = 0; yi < 8; yi++) {
-        char line = font8x8_basic[i][yi];
-        uint8_t volatile * bufferindex = targetBuffer + (y + yi) * SCREEN_W + x;
-        uint8_t mask = 0x01;
-        for (uint xi = 0; xi < 8; xi++) {
-            if (line & mask)
-                *bufferindex = fgColor;
-            else
-                *bufferindex = bgColor;
-            mask <<= 1;
-            bufferindex++;
-        }
-    }
-}
-
-void renderOSDFillLine(uint fromX, uint toX, uint y0, volatile uint8_t * targetBuffer, uint8_t color) {
-    uint8_t volatile * bufferindex = targetBuffer + y0 * SCREEN_W + fromX;
-    for (uint y = y0; y < y0 + 8; y++) {
-        for (uint x = fromX; x < toX; x++) {
-            *bufferindex = color;
-            bufferindex++;
-        }
-        bufferindex += SCREEN_W - toX + fromX;
-    }
-}
-
-void renderOSD(struct OnScreenDisplayText osd, volatile uint8_t * targetBuffer, uint8_t fgColor, uint8_t bgColor) {
-    const char *i = osd.text;
-    uint x = osd.x+1;
-    uint y = osd.y+1;
-    uint maxx = x + osd.width * 8;
-    while (*i != '\0') {
-        if (*i == '\n') {
-            if (x < maxx)
-                renderOSDFillLine(x, maxx, y, targetBuffer, bgColor);
-            x = osd.x;
-            y += 8;
-        } else {
-            renderOSDCharacter(*i, x, y, targetBuffer, fgColor, bgColor);
-            x += 8;
-        }
-        if (x > maxx)
-            maxx = x;
-        *i++;
-    }
-    if (x < maxx)
-        renderOSDFillLine(x, maxx, y, targetBuffer, bgColor);
-
-    //Padding
-    uint8_t volatile * topborder = targetBuffer + (osd.y) * SCREEN_W + osd.x+1;
-    uint8_t volatile * bottomborder = targetBuffer + (y + 8) * SCREEN_W + osd.x+1;
-    uint8_t volatile * leftborder = targetBuffer + (osd.y+1) * SCREEN_W + osd.x;
-    uint8_t volatile * rightborder = targetBuffer + (osd.y+1) * SCREEN_W + maxx;
-    for (uint i = osd.x; i < maxx - 1; i++) {
-        *topborder = bgColor;
-        *bottomborder = bgColor;
-        topborder++;
-        bottomborder++;
-    }
-    for (uint i = osd.y; i < y+7; i++) {
-        *leftborder = bgColor;
-        *rightborder = bgColor;
-        leftborder += SCREEN_W;
-        rightborder += SCREEN_W;
-    }
-}
-
-void inline startBackbufferBlend() {
-    if (modeInfoTimeLeft > 0) {
-        renderOSD(modeInfo, backBuffer, 0xff, 0x00);
-        modeInfoTimeLeft--;
-    }
-    if (gameDetectedInfoTimeLeft > 0) {
-        renderOSD(gameDetectedInfo, backBuffer, 0x00, 0xff);
-        gameDetectedInfoTimeLeft--;
-    }
-    readyIterator = (uint32_t *) readyBuffer;
-    backIterator = (uint32_t *) backBuffer;
-    backEnd = backIterator + SCREEN_SIZE / 4; //faster 32bit steps    
-}
-
-void inline continueBackbufferBlend() {
-    if (backIterator < backEnd) {
-        switch (frameBlending) {
-            case 0:
-                for (int i = 0; i < 160; i++) {
-                    *readyIterator = *backIterator; //Not really efficient, but frame blending is the default as we only show slightly less than 30fps and the option to disable frame blending is mostly here for comparison
-                    readyIterator++;
-                    backIterator++;
-                }
-                break;
-            case 1:
-                for (int i = 0; i < 160; i++) {
-                    *readyIterator = ((*readyIterator & 0xfcfcfcfc) >> 2) + 3*((*backIterator & 0xfcfcfcfc) >> 2);
-                    readyIterator++;
-                    backIterator++;
-                }
-                break;
-            case 2:
-                for (int i = 0; i < 160; i++) {
-                    *readyIterator = ((*readyIterator & 0xfcfcfcfc) >> 1) + ((*backIterator & 0xfcfcfcfc) >> 1);
-                    readyIterator++;
-                    backIterator++;
-                }
-                break;
-        }
-        if (backIterator == backEnd)
-            readyBufferIsNew = true;
-    }
-}
-
-void inline swapFrontbuffer() {
+bool inline swapFrontbuffer() {
     if (readyBufferIsNew) {
         volatile uint8_t * temp = readyBuffer;
         readyBuffer = frontBuffer;
         frontBuffer = temp;
         readyBufferIsNew = false; //We need to track this because the PPU can be halted while the USB Video then needs to keep sending the latest frame instead of switching between two buffers.
+        return true;
     }
+    return false;
+}
+
+void inline swapBackbuffer() {
+    volatile uint8_t * temp = backBuffer;
+    backBuffer = lastBuffer;
+    lastBuffer = temp;
 }
 
 void ppuStep(uint advance) { //Note that due to USB interrupts on this core we might skip a few cycles and still need to keep in sync with the Game Boy
@@ -428,6 +273,9 @@ void ppuStep(uint advance) { //Note that due to USB interrupts on this core we m
                 y = 0;
                 wy = gameInfo.windowLineAlwaysPauses ? 0 : -1;
                 DEBUG_MARK_YRESET
+                swapBackbuffer();
+                if (!readyBufferIsNew)
+                    startBackbufferToJPEG(true);
             }
             if (windowEnable) {
                 //I could not find solid information about this, but comparing the behaviour of the banners in Samurai Shodown
@@ -456,6 +304,9 @@ void ppuStep(uint advance) { //Note that due to USB interrupts on this core we m
                     currentSpriteOnLine = 0;
                     DEBUG_MARK_RENDERSTART
                 }
+                break;
+            case done:
+                continueBackbufferToJPEG();
                 break;
         }
     }

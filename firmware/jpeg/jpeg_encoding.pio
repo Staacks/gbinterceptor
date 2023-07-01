@@ -1,0 +1,96 @@
+.program jpegEncoding
+
+//The JPEG data uses a Huffman table that is designed such that every pixel can be
+//encoded in 5 bit (see https://github.com/Staacks/gbinterceptor/issues/17). This SM
+//takes bytes that contain differential values that have already been prepared to be
+//easily convertible to the Huffman encoding.
+
+//This is the second step in the encoding process:
+// jpeg_prepare -> jpeg_encoding 
+
+//-7 => into SM: 0b0000 => encoded output: 0b 0 000 0
+//-6 => into SM: 0b0001 => encoded output: 0b 0 001 0
+//-5 => into SM: 0b0010 => encoded output: 0b 0 010 0
+//-4 => into SM: 0b0011 => encoded output: 0b 0 011 0
+//-3 => into SM: 0b0100 => encoded output: 0b 10 00 0
+//-2 => into SM: 0b0101 => encoded output: 0b 10 01 0
+//-1 => into SM: 0b0110 => encoded output: 0b 110 0 0
+
+// 0 => into SM: 0b1000 => encoded output: 0b 1110  0
+// 1 => into SM: 0b1001 => encoded output: 0b 110 1 0
+// 2 => into SM: 0b1010 => encoded output: 0b 10 10 0
+// 3 => into SM: 0b1011 => encoded output: 0b 10 11 0
+// 4 => into SM: 0b1100 => encoded output: 0b 0 100 0
+// 5 => into SM: 0b1101 => encoded output: 0b 0 101 0
+// 6 => into SM: 0b1110 => encoded output: 0b 0 110 0
+// 7 => into SM: 0b1111 => encoded output: 0b 0 111 0
+
+.wrap_target
+start:
+    SET y 2    // Counter for remaining bits (-1)
+
+    OUT x 1    //0: negative number, 1: positive number
+    JMP !x negative
+
+///POSITIVE///
+positive:       //position of first one determines Huffman code
+    
+codeP:
+    OUT x 1
+    JMP !x morecodeP
+    IN null 1
+    IN x 1
+    JMP y-- remainder
+    JMP end
+
+morecodeP:
+    SET x 1
+    IN x 1
+    JMP y-- codeP
+    IN null 1
+    JMP end
+
+
+
+///NEGATIVE///
+negative:       //position of first zero determines Huffman code
+
+codeN:
+    OUT x 1
+    IN x 1
+    JMP !x codeDoneN
+    JMP y-- codeN
+
+codeDoneN:
+    IN null 1
+    JMP y-- remainder
+    JMP end
+    
+
+///REMAINDER///
+
+remainder:      //Remaining bits can just be added once the Huffman code has been chosen.
+    OUT x 1
+    IN x 1
+    JMP y-- remainder
+
+///END///
+end:
+    IN null 1
+    
+.wrap
+
+% c-sdk {
+
+void jpegEncoding_program_init(PIO pio, uint sm, uint offset) {
+    pio_sm_config c = jpegEncoding_program_get_default_config(offset);
+    sm_config_set_clkdiv(&c, 1);
+
+    sm_config_set_in_shift(&c, false, true, 8);
+    sm_config_set_out_shift(&c, false, true, 32);
+    
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+%}

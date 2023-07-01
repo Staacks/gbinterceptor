@@ -9,7 +9,6 @@ extern uint32_t cycleRatio;
 
 extern volatile bool running;
 extern volatile const char * error;
-extern bool volatile errorIsStall;
 extern volatile int errorOpcode;
 
 extern PIO busPIO;

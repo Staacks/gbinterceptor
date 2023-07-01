@@ -20,9 +20,9 @@ uint32_t cycleRatio; //Ratio of rp2040 cycles to Game Boy cycles.
 #define CYCLE_RATIO_STATISTIC_SKIP 250 //How many cycles to skip before building the statistic
 #define CYCLE_RATIO_STATISTIC_SIZE 1000 //How many cycles to capture as a statistic for cycleRatio
 
-PIO busPIO;
+#define BUS_PIO pio0
+#define BUS_SM 0
 uint32_t busPIOemptyMask, busPIOstallMask;
-uint busSM;
 io_ro_32 volatile * rxf;
 
 uint32_t volatile rawBusData;
@@ -41,7 +41,6 @@ mutex_t cpubusMutex;
 
 bool volatile running = false;
 const volatile char * error;
-bool volatile errorIsStall;
 int volatile errorOpcode;
 uint delayedOpcodeCount = 0; //Counts the number of times we did not see a new clock from the Game Boy when expected in order to detect a halt state
 
@@ -87,14 +86,12 @@ uint interruptsEnableCycle; //Keeps track of when interrupts were enabled. If th
 void setupPIO() {
     for (int i = 2; i < 30; i++)
         gpio_init(i);
-    busPIO = pio0;
-    busSM = pio_claim_unused_sm(busPIO, true);
-    uint offset = pio_add_program(busPIO, &memoryBus_program);
-    memoryBus_program_init(busPIO, busSM, offset, (float)clock_get_hz(clk_sys) / 10e6);
-    pio_sm_set_enabled(busPIO, busSM, true);
-    busPIOemptyMask = 1u << (PIO_FSTAT_RXEMPTY_LSB + busSM);
-    busPIOstallMask = 1u << (PIO_FDEBUG_RXSTALL_LSB + busSM);
-    rxf = busPIO->rxf + busSM;
+    uint offset = pio_add_program(BUS_PIO, &memoryBus_program);
+    memoryBus_program_init(BUS_PIO, BUS_SM, offset, (float)clock_get_hz(clk_sys) / 10e6);
+    pio_sm_set_enabled(BUS_PIO, BUS_SM, true);
+    busPIOemptyMask = 1u << (PIO_FSTAT_RXEMPTY_LSB + BUS_SM);
+    busPIOstallMask = 1u << (PIO_FDEBUG_RXSTALL_LSB + BUS_SM);
+    rxf = BUS_PIO->rxf + BUS_SM;
 }
 
 void stop(const char* errorMsg) {
@@ -128,7 +125,6 @@ void reset() {
 
     error = NULL;
     errorOpcode = -1;
-    errorIsStall = false;
 
     *a = 0x01;
     *b = 0x00;
@@ -193,7 +189,7 @@ void inline substitudeBusdataFromMemory() {
 
 void getNextFromBus() {
 
-    while ((busPIO->fstat & busPIOemptyMask) != 0) { //Wait if we are here to soon
+    while ((BUS_PIO->fstat & busPIOemptyMask) != 0) { //Wait if we are here to soon
         if (systick_hw->csr & 0x00010000) { //Triggered at the rate of the Game Boy clock
             if (running) { //No substitude clock if we are just waiting for the game to be turned on.
                 delayedOpcodeCount++;
@@ -261,7 +257,7 @@ void handleMemoryBus() { //To be executed on second core
 
         running = true;
 
-        busPIO->fdebug = busPIOstallMask; //Clear stall flag
+        BUS_PIO->fdebug = busPIOstallMask; //Clear stall flag
 
         while (running) {
 
@@ -361,9 +357,8 @@ void handleMemoryBus() { //To be executed on second core
             DEBUG_TRIGGER_BREAKPOINT_AT_ADDRESS
 
             //Check if we missed an instruction and stop if we did.
-            if (busPIO->fdebug & busPIOstallMask) {
+            if (BUS_PIO->fdebug & busPIOstallMask) {
                 stop("PIO stalled.");
-                errorIsStall = true;
             }
         }
 

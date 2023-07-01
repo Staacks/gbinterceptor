@@ -3,21 +3,12 @@
 
 #include "pico/stdlib.h"
 #include "pico/sync.h"
-
-//Default contrast and colors
-#define CONTRAST_FACTOR 0x55 //Maximum: 0x55 (4bit = 0..3, 3*0x55 = 0xff)
-#define COLOR_U 0x80
-#define COLOR_V 0x80
-
-//Colors and contrast for the full DMG experience
-#define DMG_CONTRAST_FACTOR 0x40
-#define DMG_COLOR_U 0x70
-#define DMG_COLOR_V 0x76
+#include "jpeg/jpeg.h"
 
 #define SCREEN_W 160
 #define SCREEN_H 144
 #define SCREEN_SIZE (SCREEN_W * SCREEN_H)
-#define FRAME_SIZE (SCREEN_SIZE * 3 / 2) //NV12 encoding for Windows compatibility
+#define FRAME_SIZE (JPEG_DATA_SIZE + JPEG_HEADER_SIZE + JPEG_END_SIZE) //Header, Huffman tables, quantization tables etc.
 
 #define CYCLES_PER_FRAME 17556
 #define CYCLES_PER_LINE 114
@@ -28,19 +19,16 @@
 #define CYCLES_LATEST_HBLANK (CYCLES_PER_LINE - 21) //At that point we are certainly in hblank
 #define LINES 154
 
-void showGameDetectedInfo(const char * title);
-void switchRenderMode();
-void startBackbufferBlend();
-void continueBackbufferBlend();
-void swapFrontbuffer();
-void setBufferUVColors();
+bool swapFrontbuffer();
 void ppuInit();
 void ppuStep(uint advance);
 
 extern uint8_t volatile * frontBuffer;
+extern uint8_t volatile * readyBuffer;
 extern uint8_t volatile * backBuffer;
+extern uint8_t volatile * lastBuffer;
 
-extern uint8_t contrastFactor;
+extern bool frameBlending;
 
 enum RenderState {done = 0, start, oamSearchDone, rendering};  
 extern volatile enum RenderState renderState;
@@ -48,6 +36,7 @@ extern volatile enum RenderState renderState;
 extern uint lineCycle;
 extern int y;
 
+extern bool readyBufferIsNew;
 extern int volatile vblankOffset;
 
 extern volatile bool windowTileMap9C00;
@@ -69,13 +58,5 @@ struct __attribute__((__packed__)) SpriteAttribute {
 	uint8_t tileIndex;
 	uint8_t attributes;
 };
-
-struct OnScreenDisplayText {
-	uint x, y;  //Position
-	uint width; //Minimal width in characters, needs to be larger than widest line for multiline text, for single line text it may be zero to fit the actual text
-	const char * text; //Pointer to the text
-};
-void renderOSD(struct OnScreenDisplayText osd, volatile uint8_t * targetBuffer, uint8_t fgColor, uint8_t bgColor);
-
 
 #endif

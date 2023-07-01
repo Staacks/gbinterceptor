@@ -15,6 +15,8 @@ target_sources(gb_interceptor PUBLIC
 	${CMAKE_CURRENT_LIST_DIR}/cpubus.c
 	${CMAKE_CURRENT_LIST_DIR}/opcodes.c
 	${CMAKE_CURRENT_LIST_DIR}/ppu.c
+	${CMAKE_CURRENT_LIST_DIR}/jpeg/jpeg.c
+	${CMAKE_CURRENT_LIST_DIR}/osd.c
 	${CMAKE_CURRENT_LIST_DIR}/debug.c
 	${CMAKE_CURRENT_LIST_DIR}/usb_descriptors.c
 	${CMAKE_CURRENT_LIST_DIR}/gamedb/game_detection.c
@@ -35,4 +37,12 @@ pico_set_binary_type(gb_interceptor copy_to_ram)
 
 pico_generate_pio_header(gb_interceptor
         ${CMAKE_CURRENT_LIST_DIR}/memory-bus.pio
+)
+
+pico_generate_pio_header(gb_interceptor
+		${CMAKE_CURRENT_LIST_DIR}/jpeg/jpeg_prepare.pio
+)
+
+pico_generate_pio_header(gb_interceptor
+		${CMAKE_CURRENT_LIST_DIR}/jpeg/jpeg_encoding.pio
 )

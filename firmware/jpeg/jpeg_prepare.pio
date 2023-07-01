@@ -1,0 +1,64 @@
+.program jpegPrepare
+
+//The JPEG data uses a Huffman table that is designed such that every pixel can be
+//encoded in 5 bit (see https://github.com/Staacks/gbinterceptor/issues/17). This SM
+//takes the differences plus eight from the CPU and subtracts one from the negative
+//values for easier encoding in the next step.
+
+//This is the first step in the encoding process:
+// jpeg_prepare -> jpeg_encoding
+
+//-7 => into SM: 0b00000001  => encoded output: 0b0000
+//-6 => into SM: 0b00000010  => encoded output: 0b0001
+//-5 => into SM: 0b00000011  => encoded output: 0b0010
+//-4 => into SM: 0b00000100  => encoded output: 0b0011
+//-3 => into SM: 0b00000101  => encoded output: 0b0100
+//-2 => into SM: 0b00000110  => encoded output: 0b0101
+//-1 => into SM: 0b00000111  => encoded output: 0b0110
+// Note that there is no 0b00000111 as output and no 0b00000000 as input, so we do not even have to treat edge cases
+// 0 => into SM: 0b00001000  => encoded output: 0b1000
+// 1 => into SM: 0b00001001  => encoded output: 0b1001
+// 2 => into SM: 0b00001010  => encoded output: 0b1010
+// 3 => into SM: 0b00001011  => encoded output: 0b1011
+// 4 => into SM: 0b00001100  => encoded output: 0b1100
+// 5 => into SM: 0b00001101  => encoded output: 0b1101
+// 6 => into SM: 0b00001110  => encoded output: 0b1110
+// 7 => into SM: 0b00001111  => encoded output: 0b1111
+
+.wrap_target
+start:
+    //Incoming data is shifted to the RIGHT to counter endianess. Therefore...
+    OUT y 3         //...we read the three least significant bits first
+    OUT x 1         //...then read the sign...
+    OUT null 4      //...and discard the zeros last.
+   
+    //Output happens in reverse order...
+    IN x 1          //...by sending the sign first...
+
+    JMP !x changed  //...and then deciding if the...
+
+unchanged:
+    JMP done        //...least significant bits remain unchanged...
+
+changed:
+    JMP y-- done    //...or need to be decremented before...
+
+done:
+    IN y 3          //...sending them.
+
+.wrap
+
+% c-sdk {
+
+void jpegPrepare_program_init(PIO pio, uint sm, uint offset) {
+    pio_sm_config c = jpegPrepare_program_get_default_config(offset);
+    sm_config_set_clkdiv(&c, 1);
+
+    sm_config_set_in_shift(&c, false, true, 32);
+    sm_config_set_out_shift(&c, true, true, 32);
+    
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+%}

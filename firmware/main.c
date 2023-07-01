@@ -13,13 +13,13 @@
 
 #include "cpubus.h"
 #include "ppu.h"
+#include "osd.h"
 #include "debug.h"
 #include "gamedb/game_detection.h"
 
-#include "screens/default_yuv.h"
-#include "screens/game_end_yuv.h"
-#include "screens/stalled_yuv.h"
-#include "screens/error_yuv.h"
+#include "screens/default.h"
+#include "screens/off.h"
+#include "screens/error.h"
 
 bool frameSending = false;
 
@@ -30,8 +30,6 @@ enum FallbackScreenType {FST_NONE = 0, FST_DEFAULT, FST_OFF, FST_ERROR} fallback
 
 int dmaChannel;
 dma_channel_config dmaConfig;
-
-struct OnScreenDisplayText versionInfo = {.text = VERSION, .width = 0, .x = SCREEN_W-(sizeof(VERSION)-1)*8, .y = 0};
 
 void setupGPIO() {
     gpio_init(GBSENSE_PIN);
@@ -57,8 +55,8 @@ void checkModeSwitch() {
         if (!modeButtonDebounce) {
             modeButtonDebounce = true;
             //Button pressed, switch mode
-            switchRenderMode();
-            setBufferUVColors();
+            frameBlending = !frameBlending;
+            renderOSD(frameBlending ? "Blending ON" : "Blending OFF", 0x03, 0x00, MODE_INFO_DURATION);
         }
     } else if (modeButtonDebounce) {
         modeButtonDebounce = false;
@@ -77,19 +75,23 @@ void setupDMA() {
 }
 
 void loadFallbackScreen(uint8_t * screen, enum FallbackScreenType type) {
-    dma_channel_configure(dmaChannel, &dmaConfig, frontBuffer, screen, FRAME_SIZE / 4, true);
+    osdPosition = SCREEN_H;
+    dma_channel_configure(dmaChannel, &dmaConfig, backBuffer, screen, SCREEN_SIZE / 4, true);
+    while (dma_channel_is_busy(dmaChannel)) {
+        tud_task();
+    }
     fallbackScreenType = type;
+    renderText(VERSION, 0x00, 0x03, (uint8_t *)backBuffer, SCREEN_W-(sizeof(VERSION)-1)*8, 1);
 }
 
-bool usbSendFrame(bool swap) {
+bool usbSendFrame() {
     if (tud_video_n_streaming(0, 0)) {
         if (!frameSending) {
-            frameSending = true;
-
-            if (swap)
-                swapFrontbuffer();
-            tud_video_n_frame_xfer(0, 0, (void*)frontBuffer, FRAME_SIZE);
-            return true;
+            if (swapFrontbuffer()) {
+                frameSending = true;
+                tud_video_n_frame_xfer(0, 0, (void*)frontBuffer, FRAME_SIZE);
+                return true;
+            }
         }
     } else {
         frameSending = false;
@@ -97,33 +99,19 @@ bool usbSendFrame(bool swap) {
     return false;
 }
 
-void animateFallbackScreen() {
-    //Just a quick idle animation by moving around the edges of the UV plane. Not exactly a beautiful rainbow, but enough to show that we are alive.
-    uint8_t c, x, y;
-    for (int i = 0; i < SCREEN_W; i+=2) {
-        c = i + fallbackFrameIndex;
-        if (c & 0x80) {
-            if (c & 0x40) {
-                x = 0x00;
-                y = (uint8_t)(c << 2);
-            } else {
-                x = ~(uint8_t)(c << 2);
-                y = 0x00;
-            }
-        } else {
-            if (c & 0x40) {
-                x = 0xff;
-                y =  ~(uint8_t)(c << 2);
-            } else {
-                x =  (uint8_t)(c << 2);
-                y = 0xff;
-            }
-        }
-        frontBuffer[SCREEN_SIZE+64*SCREEN_W/2+i] = x;
-        frontBuffer[SCREEN_SIZE+64*SCREEN_W/2+i+1] = y;
-    }
-    renderOSD(versionInfo, frontBuffer, 0x00, 0xff);
+void updateFallbackScreen() { 
     fallbackFrameIndex++;
+    if (fallbackFrameIndex >= 160)
+        fallbackFrameIndex = 0;
+    for (int x = 0; x < SCREEN_W/2; x++) {
+        if (x < fallbackFrameIndex && x + 80 > fallbackFrameIndex) {
+            backBuffer[63*SCREEN_W + 80 + x] = 0x03;
+            backBuffer[63*SCREEN_W + 79 - x] = 0x03;
+        } else {
+            backBuffer[63*SCREEN_W + 80 + x] = 0x00;
+            backBuffer[63*SCREEN_W + 79 - x] = 0x00;
+        }
+    }
 }
 
 int main(void) {
@@ -135,6 +123,8 @@ int main(void) {
     tud_init(BOARD_TUD_RHPORT);
     stdio_init_all();
     setupGPIO();
+    prepareJpegEncoding();
+    ppuInit();
 
     multicore_launch_core1(handleMemoryBus);
     
@@ -142,17 +132,28 @@ int main(void) {
 
         printf("Waiting for game.\n");
         while (!running) {
-            if (usbSendFrame(false))
-                animateFallbackScreen();
-            tud_task();
             if (isGameBoyOn()) {
-                if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_OFF)
-                    loadFallbackScreen(default_yuv, FST_DEFAULT);
+                if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_OFF) {
+                    loadFallbackScreen(default_raw, FST_DEFAULT);
+                    readyBufferIsNew = false;
+                    startBackbufferToJPEG(false);
+                }
             } else {
-                if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_DEFAULT || fallbackScreenType == FST_ERROR)
-                    loadFallbackScreen(game_end_yuv, FST_OFF);
+                if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_DEFAULT || fallbackScreenType == FST_ERROR) {
+                    loadFallbackScreen(off_raw, FST_OFF);
+                    renderText("The Game Boy\nis turned off", 0x03, 0x00, (uint8_t *)backBuffer, 40, 79);
+                    readyBufferIsNew = false;
+                    startBackbufferToJPEG(false);
+                }
             }
-            
+            if (readyBufferIsNew) {
+                if (usbSendFrame()) {
+                    updateFallbackScreen();
+                    startBackbufferToJPEG(false);
+                }
+            } else
+                continueBackbufferToJPEG();
+            tud_task();
         }
 
         ledOn();
@@ -200,10 +201,9 @@ int main(void) {
                 if (!vblank && y >= SCREEN_H) {
                     vblank = true;
                     ledOff(); //Switches the LED GPIO to input to allow to use the same GPIO pin to read the mode button state, however, in order to allow the line to settle first, we do the read-out at the end of vblank and then re-enable the LED
-                    startBackbufferBlend();
                     if (!gameDetected) {
                         if (detectGame()) {
-                            showGameDetectedInfo(gameInfo.title);
+                            renderOSD(gameInfo.title, 0x00, 0x03, GAME_DETECTED_INFO_DURATION);
                         }
                     }
                 } else if (vblank) {
@@ -211,14 +211,12 @@ int main(void) {
                         vblank = false;
                         checkModeSwitch();
                         ledOn();
-                    } else
-                        continueBackbufferBlend();
+                    }
                 }
 
                 tud_task();
                 if (renderState == done) {
-                    //All pixels for this line have been rendered. Avoid USB tasks while rendering actual pixels. We can do this during HBLANK or VBLANK.
-                    usbSendFrame(true);
+                    usbSendFrame();
                 }
             #endif
         }
@@ -226,7 +224,11 @@ int main(void) {
         ledOff();
         if (error != NULL) {
             mutex_enter_blocking(&cpubusMutex); //Grab mutex immediately.
-            loadFallbackScreen(errorIsStall ? stalled_yuv : error_yuv, FST_ERROR);
+            loadFallbackScreen(error_raw, FST_ERROR);
+            renderText("Sorry,\nsomething\nwent wrong...", 0x03, 0x00, (uint8_t *)backBuffer, 44, 72);
+            renderText((const char *)error, 0x02, 0x00, (uint8_t *)backBuffer, 4, 110);
+            readyBufferIsNew = false;
+            startBackbufferToJPEG(false);
             dumpMemory();
             dumpBus();
             stdio_flush();
