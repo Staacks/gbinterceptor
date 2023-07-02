@@ -232,8 +232,7 @@ void inline continueBackbufferToJPEG() {
             readyBufferIsNew = true; //Note: At this point the we have written our pixels to the jpegPIO, but they may still be processed and pushed through DMA. However, this should be extremely fast and even if USB would start transferring the frame before DMA has compelte (which I highly doubt even happens), there is no way the transfer reaches the last bytes before DMA completes, so there is no reason to stall here.
         }
     }
-    if (encodeIndex < SCREEN_SIZE && (ENCODE_PIO->fstat & ENCODE_IN_EMPTY_MASK) == ENCODE_IN_EMPTY_MASK ) {
-        ENCODE_PIO->fdebug = 0xffffffff; //Clear encode debug register (no need to be specific - all SMs are working on encoding)
+    if (encodeIndex < SCREEN_SIZE && (ENCODE_PIO->fstat & ENCODE_IN_EMPTY_MASK) == ENCODE_IN_EMPTY_MASK) {
         pushPixelsToJpegPIO(PREPARE_SM_A);
         pushPixelsToJpegPIO(PREPARE_SM_A);
         pushPixelsToJpegPIO(PREPARE_SM_A);

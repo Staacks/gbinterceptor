@@ -103,7 +103,7 @@
 #define CFG_TUD_VIDEO_STREAMING  1
 
 //Bulk transfer mode (in contrast to isochronous mode)
-#define CFG_TUD_VIDEO_STREAMING_BULK 0
+#define CFG_TUD_VIDEO_STREAMING_BULK 1
 
 // video streaming endpoint size
 #if CFG_TUD_VIDEO_STREAMING_BULK == 1
