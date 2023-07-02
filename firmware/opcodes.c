@@ -108,6 +108,10 @@ void toMemory(uint16_t address, uint8_t data) {
                 paletteOBP1[2] = ((~data >> 4) & 0x03);
                 paletteOBP1[3] = ((~data >> 6) & 0x03);
                 break;
+            case 0xff4d: //KEY1, GBC double speed mode switch
+                if (data & 0x01)
+                    stop("Game Boy Color\ngames are not\nsupported.");
+                break; 
         }
     }
     memory[address] = data;
