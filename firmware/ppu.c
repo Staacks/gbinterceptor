@@ -94,9 +94,6 @@ void ppuInit() {
     y = 0;
     x = 0;
     lineCycle = 0;
-
-    fillBufferWithBaseJpeg(buffer1);
-    fillBufferWithBaseJpeg(buffer2);
 }
 
 void renderBGTiles() {

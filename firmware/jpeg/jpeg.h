@@ -8,7 +8,6 @@
 #define JPEG_HEADER_SIZE 160
 #define JPEG_END_SIZE 2
 
-void fillBufferWithBaseJpeg();
 void prepareJpegEncoding();
 void startBackbufferToJPEG(bool allowFrameBlend);
 void continueBackbufferToJPEG();

@@ -17,6 +17,8 @@
 #include "debug.h"
 #include "gamedb/game_detection.h"
 
+#include "jpeg/base_jpeg.h"
+
 #include "screens/default.h"
 #include "screens/off.h"
 #include "screens/error.h"
@@ -114,6 +116,13 @@ void updateFallbackScreen() {
     }
 }
 
+void fillBufferWithBaseJpeg(uint8_t * target, int dmaChannel, dma_channel_config dmaConfig) {
+    dma_channel_configure(dmaChannel, &dmaConfig, target, base_jpeg, FRAME_SIZE / 4, true);
+    while (dma_channel_is_busy(dmaChannel)) {
+        tud_task();
+    }
+}
+
 int main(void) {
     set_sys_clock_khz(250000, true);
 
@@ -123,8 +132,9 @@ int main(void) {
     tud_init(BOARD_TUD_RHPORT);
     stdio_init_all();
     setupGPIO();
+    fillBufferWithBaseJpeg((uint8_t *)frontBuffer, dmaChannel, dmaConfig);
+    fillBufferWithBaseJpeg((uint8_t *)readyBuffer, dmaChannel, dmaConfig);
     prepareJpegEncoding();
-    ppuInit();
 
     multicore_launch_core1(handleMemoryBus);
     

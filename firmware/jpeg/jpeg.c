@@ -3,7 +3,6 @@
 
 #include "jpeg_prepare.pio.h"
 #include "jpeg_encoding.pio.h"
-#include "jpeg/base_jpeg.h"
 
 #include "osd.h"
 
@@ -81,11 +80,6 @@ uint32_t * backIterator = NULL;
 uint32_t * lastIterator = NULL;
 uint encodeIndex; //Position in backbuffer copy process in multiples of four bytes (we copy 32bit at once)
 uint osdIndex; //index at which the backbuffer transfer should copy the osdBuffer instead
-
-void fillBufferWithBaseJpeg(uint8_t * target) {
-    for (int i = 0; i < FRAME_SIZE; i++)
-        *(target + i) = base_jpeg[i];
-}
 
 void setupJpegPIO() {
     uint offsetPrepare = pio_add_program(PREPARE_PIO, &jpegPrepare_program);
