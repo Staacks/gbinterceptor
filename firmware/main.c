@@ -118,6 +118,10 @@ void updateFallbackScreen() {
 
 void fillBufferWithBaseJpeg(uint8_t * target, int dmaChannel, dma_channel_config dmaConfig) {
     dma_channel_configure(dmaChannel, &dmaConfig, target, base_jpeg, FRAME_SIZE / 4, true);
+    //We are using faster (?) 32 bit copies, but the JPEG might not have a size that is a multiple of 4 byte, so let's just copy the remaining ones manually.
+    for (int i = 4 * (FRAME_SIZE / 4); i < FRAME_SIZE; i++)
+        target[i] = base_jpeg[i];
+    //Wait for DMA to finish
     while (dma_channel_is_busy(dmaChannel)) {
         tud_task();
     }
