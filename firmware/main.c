@@ -33,6 +33,8 @@ enum FallbackScreenType {FST_NONE = 0, FST_DEFAULT, FST_OFF, FST_ERROR} fallback
 int dmaChannel;
 dma_channel_config dmaConfig;
 
+bool dmgColorMode = false;
+
 void setupGPIO() {
     gpio_init(GBSENSE_PIN);
     gpio_init(LED_SWITCH_PIN);
@@ -58,6 +60,11 @@ void checkModeSwitch() {
             modeButtonDebounce = true;
             //Button pressed, switch mode
             frameBlending = !frameBlending;
+            if (frameBlending) {
+                dmgColorMode = !dmgColorMode;
+                frontBuffer[JPEG_CHROMA_OFFSET] = dmgColorMode ? 0b10001000 : 0x00;
+                readyBuffer[JPEG_CHROMA_OFFSET] = dmgColorMode ? 0b10001000 : 0x00;
+            }
             renderOSD(frameBlending ? "Blending ON" : "Blending OFF", 0x03, 0x00, MODE_INFO_DURATION);
         }
     } else if (modeButtonDebounce) {
