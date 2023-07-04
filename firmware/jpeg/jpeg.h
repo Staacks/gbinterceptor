@@ -6,7 +6,7 @@
 
 #define JPEG_DATA_SIZE (SCREEN_SIZE * 5 / 8) //5bit per pixel, see https://github.com/Staacks/gbinterceptor/issues/17
 #define JPEG_HEADER_SIZE 188
-#define JPEG_END_SIZE 2893
+#define JPEG_END_SIZE 2895
 
 void prepareJpegEncoding();
 void startBackbufferToJPEG(bool allowFrameBlend);

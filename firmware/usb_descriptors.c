@@ -50,9 +50,9 @@ uint8_t const * tud_descriptor_device_cb(void) {
 //--------------------------------------------------------------------+
 
 #if CFG_TUD_VIDEO_STREAMING_BULK == 1
-  #define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_VIDEO_CAPTURE_DESC_BULK_LEN + TUD_CDC_DESC_LEN)
+  #define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_VIDEO_CAPTURE_DESC_BULK_LEN  + CFG_TUD_CDC*TUD_CDC_DESC_LEN )
 #else
-  #define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_VIDEO_CAPTURE_DESC_LEN + TUD_CDC_DESC_LEN)
+  #define CONFIG_TOTAL_LEN    (TUD_CONFIG_DESC_LEN + TUD_VIDEO_CAPTURE_DESC_LEN + CFG_TUD_CDC*TUD_CDC_DESC_LEN )
 #endif
 
 #define EPNUM_VIDEO_IN    0x81
@@ -75,7 +75,9 @@ uint8_t const desc_fs_configuration[] = {
                                CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE),
   #endif
   // Interface number, string index, EP notification address and size, EP data address (out, in) and size.
-  TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
+  #if CFG_TUD_CDC == 1
+    TUD_CDC_DESCRIPTOR(ITF_NUM_CDC, 4, EPNUM_CDC_NOTIF, 8, EPNUM_CDC_OUT, EPNUM_CDC_IN, 64),
+  #endif
 };
 
 // Invoked when received GET CONFIGURATION DESCRIPTOR

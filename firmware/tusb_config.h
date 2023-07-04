@@ -93,7 +93,7 @@
 //------------- CLASS -------------//
 // The number of video control interfaces
 #define CFG_TUD_VIDEO            1
-#define CFG_TUD_CDC              1
+#define CFG_TUD_CDC              0
 #define CFG_TUD_MSC              0
 #define CFG_TUD_HID              0
 #define CFG_TUD_MIDI             0
@@ -107,7 +107,7 @@
 
 // video streaming endpoint size
 #if CFG_TUD_VIDEO_STREAMING_BULK == 1
-    #define CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE  256
+    #define CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE  2048
 #else
     #define CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE  1023
 #endif

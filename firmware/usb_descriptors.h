@@ -17,6 +17,7 @@ void setUniqueSerial();
 #define FRAME_RATE_STEP 333 //Number of steps into which the interval of FRAME_RATE should be divided to offer fine grain selection (note that this refers to the interval, hence the fps options are not evenly divided by this)
 #define FRAME_RATE_STEP_INTERVAL (10000000/FRAME_RATE/FRAME_RATE_STEP)
 
+#if CFG_TUD_CDC == 1
 enum {
     ITF_NUM_VIDEO_CONTROL,
     ITF_NUM_VIDEO_STREAMING,
@@ -24,6 +25,13 @@ enum {
     ITF_NUM_CDC_DATA,
     ITF_NUM_TOTAL
 };
+#else
+enum {
+    ITF_NUM_VIDEO_CONTROL,
+    ITF_NUM_VIDEO_STREAMING,
+    ITF_NUM_TOTAL
+};
+#endif
 
 #define TUD_VIDEO_CAPTURE_DESC_LEN (                                                                                                                                                                                                                           \
     TUD_VIDEO_DESC_IAD_LEN                                                                                                                                                                                                      /* control */                  \
