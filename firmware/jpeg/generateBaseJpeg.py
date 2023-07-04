@@ -7,35 +7,36 @@ def generateSOI():
 
 def generateAPP0():
     data = bytearray([0xff, 0xe0])
-    data.extend([0x00, 0x11])               #length 17
+    data.extend([0x00, 0x10])               #length 16
     data.extend(b"JFIF\x00")                #JFIF
     data.extend([0x01, 0x01])               #Version 1.1
     data.extend([0x01])                     #Units DPI
     data.extend([0x00, 0x48, 0x00, 0x48])   #Density 72x72
     data.extend([0x00, 0x00])               #Thumbnail 0x0
-    data.extend([0x00])                     #No meaning. We just need to pad the image by one byte to have the data block starting at a multiple of 32.
     return data
 
-def generateDQT():
+def generateDQT(destination):
     data = bytearray([0xff, 0xdb])
     data.extend([0x00, 0x43])               #Length 67
-    data.extend([0x00])                     #Destination luminance
+    data.extend([destination])              #destination
     data.extend([0xff]*64)                  #QUantization table entirely filled with 0xff
     return data
 
 def generateSOF():
     data = bytearray([0xff, 0xc0])
-    data.extend([0x00, 0x0b])               #Length 11
+    data.extend([0x00, 0x11])               #Length 17
     data.extend([0x08])                     #Precision
     data.extend([0x04, 0x80])               #height 8*144
-    data.extend([0x05, 0x00])               #height 8*160
-    data.extend([0x01])                     #Nf
-    data.extend([0x01, 0x11, 0x00])         #Luminance channel setup
+    data.extend([0x05, 0x00])               #width 8*160
+    data.extend([0x03])                     #Components
+    data.extend([0x01, 0x22, 0x00])         #Luminance channel setup
+    data.extend([0x02, 0x11, 0x00])         #Chrominance Cb channel setup
+    data.extend([0x03, 0x11, 0x00])         #Chrominance Cr channel setup
     return data
 
 def generateDHT_DC():
     data = bytearray([0xff, 0xc4])
-    data.extend([0x00, 0x17])               #Length 22
+    data.extend([0x00, 0x17])               #Length 23
     data.extend([0x00])                     #DC Huffman table, destination 0
 
     #Huffman table
@@ -44,6 +45,18 @@ def generateDHT_DC():
     #110 -> 0x01
     #1110 -> 0x00
     data.extend([0x01, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x02, 0x01, 0x00]) 
+
+    return data
+
+def generateDHT_DC_chrominance():
+    data = bytearray([0xff, 0xc4])
+    data.extend([0x00, 0x15])               #Length 21
+    data.extend([0x01])                     #DC Huffman table, destination 1
+
+    #Huffman table
+    #0 -> 0x00
+    #10 -> 0x01
+    data.extend([0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01])
 
     return data
 
@@ -63,7 +76,17 @@ def generateSOS():
     data.extend([0x01])                     #Components: 1
     data.extend([0x01, 0x00])               #Component one uses tables 0/0
     data.extend([0x00, 0x3f])               #Spectral select
-    data.extend([0x00])                     #seccessive approx
+    data.extend([0x00])                     #successive approx
+    return data
+
+def generateSOS_chrominance():
+    data = bytearray([0xff, 0xda])
+    data.extend([0x00, 0x0a])               #Length 10
+    data.extend([0x02])                     #Components: 2
+    data.extend([0x02, 0x10])               #Component two uses tables 1/0
+    data.extend([0x03, 0x10])               #Component three uses tables 1/0
+    data.extend([0x00, 0x3f])               #Spectral select
+    data.extend([0x00])                     #successive approx
     return data
 
 def encodeVal(v):
@@ -89,18 +112,27 @@ def generateData():
                 pixelData[byteOffset+1] |= ((code << (11-bitOffset)) & 0xff)
     return pixelData
 
+def generateData_chrominance():
+    last = 0
+    pixelData = [0x00]*(160*144*2*2//8//4+1) #160 * 144 pixels, 2 channels, one bit for DC and AC entry each, 8 bit per byte, 4 pixels per entry due to undersampling plus 1 byte that is not always used, but leaves headroom to set a DC offset in the beginning for green color mode
+    #pixelData[0] = 0b10001000 #Set entire DC offset to make the image green
+    return pixelData
+
 def generateEOI():
     return bytearray([0xff, 0xd9])
 
 data = bytearray()
 data.extend(generateSOI())
 data.extend(generateAPP0())
-data.extend(generateDQT())
+data.extend(generateDQT(0x00)) #DQT
 data.extend(generateSOF())
 data.extend(generateDHT_DC())
+data.extend(generateDHT_DC_chrominance())
 data.extend(generateDHT_AC())
 data.extend(generateSOS())
 data.extend(generateData())
+data.extend(generateSOS_chrominance())
+data.extend(generateData_chrominance())
 data.extend(generateEOI())
 
 
