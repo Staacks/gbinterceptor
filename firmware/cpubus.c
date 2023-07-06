@@ -341,6 +341,8 @@ void handleMemoryBus() { //To be executed on second core
                         vblankOffset = (memory[0xff45] - y) * CYCLES_PER_LINE - lineCycle - 6;
                         if (vblankOffset > CYCLES_PER_FRAME/2)
                             vblankOffset -= CYCLES_PER_FRAME;
+                        else if (vblankOffset < -CYCLES_PER_FRAME/2)
+                            vblankOffset += CYCLES_PER_FRAME;
                     }
                 }
                 interruptsEnabled = false;
