@@ -78,6 +78,10 @@ void toMemory(uint16_t address, uint8_t data) {
                 windowTileMap9C00 = (data & 0x40) != 0;
                 lcdAndPpuEnable = (data & 0x80) != 0;
                 break;
+            case 0xff41: //STAT
+                //Due to the STAT interrupt bug on DMG and GBP, we disable interrupt sycnhronization for a few cycles after any write to the STAT register
+                interruptsEnableCycle = cycleIndex;
+                break;
             case 0xff46: //OAM DMA transfer
                 if ((data & 0x80) != 0 && ((data & 0xe0) != 0xa0)) {
                     //OAM from our RAM copy
