@@ -15,6 +15,17 @@ def generateAPP0():
     data.extend([0x00, 0x00])               #Thumbnail 0x0
     return data
 
+def generateAPP0NoChroma():
+    data = bytearray([0xff, 0xe0])
+    data.extend([0x00, 0x11])               #length 17
+    data.extend(b"JFIF\x00")                #JFIF
+    data.extend([0x01, 0x01])               #Version 1.1
+    data.extend([0x01])                     #Units DPI
+    data.extend([0x00, 0x48, 0x00, 0x48])   #Density 72x72
+    data.extend([0x00, 0x00])               #Thumbnail 0x0
+    data.extend([0x00])                     #No meaning, we just need to pad it, so that the data block aligns with a multiple of 32bit
+    return data
+
 def generateDQT(destination):
     data = bytearray([0xff, 0xdb])
     data.extend([0x00, 0x43])               #Length 67
@@ -32,6 +43,16 @@ def generateSOF():
     data.extend([0x01, 0x22, 0x00])         #Luminance channel setup
     data.extend([0x02, 0x11, 0x00])         #Chrominance Cb channel setup
     data.extend([0x03, 0x11, 0x00])         #Chrominance Cr channel setup
+    return data
+
+def generateSOFNoChroma():
+    data = bytearray([0xff, 0xc0])
+    data.extend([0x00, 0x0b])               #Length 11
+    data.extend([0x08])                     #Precision
+    data.extend([0x04, 0x80])               #height 8*144
+    data.extend([0x05, 0x00])               #width 8*160
+    data.extend([0x01])                     #Components
+    data.extend([0x01, 0x22, 0x00])         #Luminance channel setup
     return data
 
 def generateDHT_DC():
@@ -121,30 +142,46 @@ def generateData_chrominance():
 def generateEOI():
     return bytearray([0xff, 0xd9])
 
-data = bytearray()
-data.extend(generateSOI())
-data.extend(generateAPP0())
-data.extend(generateDQT(0x00)) #DQT
-data.extend(generateSOF())
-data.extend(generateDHT_DC())
-data.extend(generateDHT_DC_chrominance())
-data.extend(generateDHT_AC())
-data.extend(generateSOS())
-data.extend(generateData())
-data.extend(generateSOS_chrominance())
-data.extend(generateData_chrominance())
-data.extend(generateEOI())
+def baseJpeg():
+    data = bytearray()
+    data.extend(generateSOI())
+    data.extend(generateAPP0())
+    data.extend(generateDQT(0x00)) #DQT
+    data.extend(generateSOF())
+    data.extend(generateDHT_DC())
+    data.extend(generateDHT_DC_chrominance())
+    data.extend(generateDHT_AC())
+    data.extend(generateSOS())
+    data.extend(generateData())
+    data.extend(generateSOS_chrominance())
+    data.extend(generateData_chrominance())
+    data.extend(generateEOI())
+    return data
 
+def baseJpegNoChroma():
+    data = bytearray()
+    data.extend(generateSOI())
+    data.extend(generateAPP0NoChroma())
+    data.extend(generateDQT(0x00)) #DQT
+    data.extend(generateSOFNoChroma())
+    data.extend(generateDHT_DC())
+    data.extend(generateDHT_AC())
+    data.extend(generateSOS())
+    data.extend(generateData())
+    data.extend(generateEOI())
+    return data
 
+def generateFiles(jpg, h, var, data):
+    with open(jpg, "wb") as f:
+        f.write(data)
 
-with open("base.jpg", "wb") as f:
-    f.write(data)
+    with open(h, "w") as f:
+        f.write("unsigned char __in_flash(\"jpeg\") " + var + "[] = {")
+        for i in range(len(data)):
+            if i % 16 == 0:
+                f.write("\n")
+            f.write(' 0x{:02x},'.format(data[i]))
+        f.write("\n};\n")
 
-with open("base_jpeg.h", "w") as f:
-    f.write("unsigned char __in_flash(\"jpeg\") base_jpeg[] = {")
-    for i in range(len(data)):
-        if i % 16 == 0:
-            f.write("\n")
-        f.write(' 0x{:02x},'.format(data[i]))
-    f.write("\n};\n")
-
+generateFiles("base.jpg", "base_jpeg.h", "base_jpeg", baseJpeg())
+generateFiles("base_no_chroma.jpg", "base_jpeg_no_chroma.h", "base_jpeg_no_chroma", baseJpegNoChroma())

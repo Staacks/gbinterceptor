@@ -13,9 +13,6 @@ void setUniqueSerial();
 
 #define FRAME_WIDTH 160*8
 #define FRAME_HEIGHT 144*8
-#define FRAME_RATE 60
-#define FRAME_RATE_STEP 333 //Number of steps into which the interval of FRAME_RATE should be divided to offer fine grain selection (note that this refers to the interval, hence the fps options are not evenly divided by this)
-#define FRAME_RATE_STEP_INTERVAL (10000000/FRAME_RATE/FRAME_RATE_STEP)
 
 #if CFG_TUD_CDC == 1
 enum {
@@ -59,7 +56,7 @@ enum {
 #define TUD_VIDEO_DESC_CS_VS_FMT_I420(_fmtidx, _numfmtdesc, _frmidx, _asrx, _asry, _interlace, _cp) \
     TUD_VIDEO_DESC_CS_VS_FMT_UNCOMPR(_fmtidx, _numfmtdesc, TUD_VIDEO_GUID_I420, 12, _frmidx, _asrx, _asry, _interlace, _cp)
 
-#define TUD_VIDEO_CAPTURE_DESCRIPTOR(_stridx, _epin, _width, _height, _fps, _fps_step, _fps_step_interval, _epsize)                                                                           \
+#define TUD_VIDEO_CAPTURE_DESCRIPTOR(_stridx, _epin, _width, _height, _epsize)                                                                           \
     TUD_VIDEO_DESC_IAD(ITF_NUM_VIDEO_CONTROL, /* 2 Interfaces */ 0x02, _stridx), /* Video control 0 */                                                         \
         TUD_VIDEO_DESC_STD_VC(ITF_NUM_VIDEO_CONTROL, 0, _stridx),                                                                                              \
         TUD_VIDEO_DESC_CS_VC(/* UVC 1.5*/ 0x0150, /* wTotalLength - bLength */                                                                                 \
@@ -75,20 +72,17 @@ enum {
                                    _epin, /*bmInfo*/ 0, /*bTerminalLink*/ UVC_ENTITY_CAP_OUTPUT_TERMINAL,                                                      \
                                    /*bStillCaptureMethod*/ 0, /*bTriggerSupport*/ 0, /*bTriggerUsage*/ 0,                                                      \
                                    /*bmaControls(1)*/ 0), /* Video stream format */                                                                            \
-        TUD_VIDEO_DESC_CS_VS_FMT_MJPEG(/*bFormatIndex*/ 1, /*bNumFrameDescriptors*/ 1, /*Fixed size samples*/ 1,                                                                         \
+        TUD_VIDEO_DESC_CS_VS_FMT_MJPEG(/*bFormatIndex*/ 1, /*bNumFrameDescriptors*/ 1, /*Fixed size samples*/ 1,                                               \
                                       /*bDefaultFrameIndex*/ 1, 0, 0, 0, /*bCopyProtect*/ 0), /* Video stream frame format */                                  \
-        TUD_VIDEO_DESC_CS_VS_FRM_MJPEG_CONT(/*bFrameIndex */ 1, 0, _width, _height,                                                                          \
-                                              FRAME_SIZE * 8, FRAME_SIZE * 8 * _fps,                                                              \
-                                              FRAME_SIZE,                                                                                       \
-                                              _fps_step_interval*_fps_step,         /*Frame interval = FRAME_RATE rounded to multiple of interval step*/       \
-                                              _fps_step_interval*_fps_step,         /*Min frame interval = FRAME_RATE rounded to multiple of interval step*/   \
-                                              _fps_step_interval*_fps_step*_fps,    /*Max frame interval = 1fps rounded to multiple of interval step*/         \
-                                              _fps_step_interval),                  /*Frame interval step = 0.1fps*/                                           \
+        TUD_VIDEO_DESC_CS_VS_FRM_MJPEG_CONT(/*bFrameIndex */ 1, 0, _width, _height,                                                                            \
+                                              FRAME_SIZE * 8 * 30, FRAME_SIZE_NO_CHROMA * 8 * 60,                                                              \
+                                              FRAME_SIZE,                                                                                                      \
+                                              333333, 166666, 333333, 166667),       /*default 30fps, 30fps, 60fps*/                                           \
         TUD_VIDEO_DESC_CS_VS_COLOR_MATCHING(VIDEO_COLOR_PRIMARIES_BT709, VIDEO_COLOR_XFER_CH_BT709, VIDEO_COLOR_COEF_SMPTE170M), /* VS alt 1 */                \
         TUD_VIDEO_DESC_STD_VS(ITF_NUM_VIDEO_STREAMING, 1, 1, _stridx),                                                           /* EP */                      \
         TUD_VIDEO_DESC_EP_ISO(_epin, _epsize, 1)
 
-#define TUD_VIDEO_CAPTURE_DESCRIPTOR_BULK(_stridx, _epin, _width, _height, _fps, _fps_step, _fps_step_interval, _epsize)                                                                           \
+#define TUD_VIDEO_CAPTURE_DESCRIPTOR_BULK(_stridx, _epin, _width, _height, _epsize)                                                                           \
     TUD_VIDEO_DESC_IAD(ITF_NUM_VIDEO_CONTROL, /* 2 Interfaces */ 0x02, _stridx), /* Video control 0 */                                                         \
         TUD_VIDEO_DESC_STD_VC(ITF_NUM_VIDEO_CONTROL, 0, _stridx),                                                                                              \
         TUD_VIDEO_DESC_CS_VC(/* UVC 1.5*/ 0x0150, /* wTotalLength - bLength */                                                                                 \
@@ -104,15 +98,12 @@ enum {
                                    _epin, /*bmInfo*/ 0, /*bTerminalLink*/ UVC_ENTITY_CAP_OUTPUT_TERMINAL,                                                      \
                                    /*bStillCaptureMethod*/ 0, /*bTriggerSupport*/ 0, /*bTriggerUsage*/ 0,                                                      \
                                    /*bmaControls(1)*/ 0), /* Video stream format */                                                                            \
-        TUD_VIDEO_DESC_CS_VS_FMT_MJPEG(/*bFormatIndex*/ 1, /*bNumFrameDescriptors*/ 1, /*Fixed size samples*/ 1,                                                                         \
+        TUD_VIDEO_DESC_CS_VS_FMT_MJPEG(/*bFormatIndex*/ 1, /*bNumFrameDescriptors*/ 1, /*Fixed size samples*/ 1,                                               \
                                       /*bDefaultFrameIndex*/ 1, 0, 0, 0, /*bCopyProtect*/ 0), /* Video stream frame format */                                  \
-        TUD_VIDEO_DESC_CS_VS_FRM_MJPEG_CONT(/*bFrameIndex */ 1, 0, _width, _height,                                                                          \
-                                              FRAME_SIZE * 8, FRAME_SIZE * 8 * _fps,                                                              \
-                                              FRAME_SIZE,                                                                                       \
-                                              _fps_step_interval*_fps_step,         /*Frame interval = FRAME_RATE rounded to multiple of interval step*/       \
-                                              _fps_step_interval*_fps_step,         /*Min frame interval = FRAME_RATE rounded to multiple of interval step*/   \
-                                              _fps_step_interval*_fps_step*_fps,    /*Max frame interval = 1fps rounded to multiple of interval step*/         \
-                                              _fps_step_interval),                  /*Frame interval step = 0.1fps*/                                           \
+        TUD_VIDEO_DESC_CS_VS_FRM_MJPEG_CONT(/*bFrameIndex */ 1, 0, _width, _height,                                                                            \
+                                              FRAME_SIZE * 8 * 30, FRAME_SIZE_NO_CHROMA * 8 * 60,                                                              \
+                                              FRAME_SIZE,                                                                                                      \
+                                              333333, 166666, 333333, 166667),       /*default 30fps, 30fps, 60fps*/                                           \
         TUD_VIDEO_DESC_CS_VS_COLOR_MATCHING(VIDEO_COLOR_PRIMARIES_BT709, VIDEO_COLOR_XFER_CH_BT709, VIDEO_COLOR_COEF_SMPTE170M), /* VS alt 1 */                \
         TUD_VIDEO_DESC_EP_BULK(_epin, _epsize, 1)
 

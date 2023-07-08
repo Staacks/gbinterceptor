@@ -8,7 +8,6 @@
 #define SCREEN_W 160
 #define SCREEN_H 144
 #define SCREEN_SIZE (SCREEN_W * SCREEN_H)
-#define FRAME_SIZE (JPEG_DATA_SIZE + JPEG_HEADER_SIZE + JPEG_END_SIZE) //Header, Huffman tables, quantization tables etc.
 
 #define CYCLES_PER_FRAME 17556
 #define CYCLES_PER_LINE 114

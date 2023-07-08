@@ -67,11 +67,11 @@ uint8_t const desc_fs_configuration[] = {
   // IAD for Video Control
   #if CFG_TUD_VIDEO_STREAMING_BULK == 1
     TUD_VIDEO_CAPTURE_DESCRIPTOR_BULK(4, EPNUM_VIDEO_IN,
-                               FRAME_WIDTH, FRAME_HEIGHT, FRAME_RATE, FRAME_RATE_STEP, FRAME_RATE_STEP_INTERVAL,
+                               FRAME_WIDTH, FRAME_HEIGHT,
                                64),
   #else
     TUD_VIDEO_CAPTURE_DESCRIPTOR(4, EPNUM_VIDEO_IN,
-                               FRAME_WIDTH, FRAME_HEIGHT, FRAME_RATE, FRAME_RATE_STEP, FRAME_RATE_STEP_INTERVAL,
+                               FRAME_WIDTH, FRAME_HEIGHT,
                                CFG_TUD_VIDEO_STREAMING_EP_BUFSIZE),
   #endif
   // Interface number, string index, EP notification address and size, EP data address (out, in) and size.

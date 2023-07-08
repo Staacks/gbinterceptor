@@ -18,6 +18,7 @@
 #include "gamedb/game_detection.h"
 
 #include "jpeg/base_jpeg.h"
+#include "jpeg/base_jpeg_no_chroma.h"
 
 #include "screens/default.h"
 #include "screens/off.h"
@@ -35,12 +36,15 @@ dma_channel_config dmaConfig;
 
 bool dmgColorMode = false;
 
+bool includeChroma = true;
+bool is30fpsFrame = true;
+
 void setupGPIO() {
     gpio_init(GBSENSE_PIN);
     gpio_init(LED_SWITCH_PIN);
     gpio_set_dir(GBSENSE_PIN, GPIO_IN);
     
-     //IMPORTANT: Since the mode button directly connects this GPIO pin to ground, we only want to drive it to the ground state to enable the LED. Disabling the LED is done by disabling the output, never by driving actively to HIGH as this might cause a short circuit if the button is pressed at the same time.
+    //IMPORTANT: Since the mode button directly connects this GPIO pin to ground, we only want to drive it to the ground state to enable the LED. Disabling the LED is done by disabling the output, never by driving actively to HIGH as this might cause a short circuit if the button is pressed at the same time.
     gpio_put(LED_SWITCH_PIN, 0);
     gpio_set_dir(LED_SWITCH_PIN, GPIO_IN);
     gpio_pull_up(LED_SWITCH_PIN);
@@ -97,8 +101,11 @@ bool usbSendFrame() {
     if (tud_video_n_streaming(0, 0)) {
         if (!frameSending) {
             if (swapFrontbuffer()) {
-                frameSending = true;
-                tud_video_n_frame_xfer(0, 0, (void*)frontBuffer, FRAME_SIZE);
+                is30fpsFrame = !is30fpsFrame; //If clock is determined by the Game Boy and if we include Chroma, we only send every second frame (i.e. 30fps)
+                if (is30fpsFrame || !includeChroma || !running) {
+                    frameSending = true;
+                    tud_video_n_frame_xfer(0, 0, (void*)(frontBuffer + (includeChroma || !running ? 0 : JPEG_HEADER_SIZE - JPEG_HEADER_SIZE_NO_CHROMA)), includeChroma || !running ? FRAME_SIZE : FRAME_SIZE_NO_CHROMA);
+                }
                 return true;
             }
         }
@@ -123,15 +130,20 @@ void updateFallbackScreen() {
     }
 }
 
-void fillBufferWithBaseJpeg(uint8_t * target, int dmaChannel, dma_channel_config dmaConfig) {
-    dma_channel_configure(dmaChannel, &dmaConfig, target, base_jpeg, FRAME_SIZE / 4, true);
-    //We are using faster (?) 32 bit copies, but the JPEG might not have a size that is a multiple of 4 byte, so let's just copy the remaining ones manually.
-    for (int i = 4 * (FRAME_SIZE / 4); i < FRAME_SIZE; i++)
-        target[i] = base_jpeg[i];
-    //Wait for DMA to finish
-    while (dma_channel_is_busy(dmaChannel)) {
-        tud_task();
-    }
+void fillBufferWithBaseJpeg(uint8_t * target, bool includeChroma) {
+    int chromaOffset = (includeChroma ? 0 : JPEG_HEADER_SIZE - JPEG_HEADER_SIZE_NO_CHROMA);
+    int headerSize = (includeChroma ? JPEG_HEADER_SIZE : JPEG_HEADER_SIZE_NO_CHROMA);
+    for (int i = 0; i < headerSize; i++)
+        target[i + chromaOffset] = (includeChroma ? base_jpeg : base_jpeg_no_chroma)[i];
+    int fullSize = (includeChroma ? FRAME_SIZE : FRAME_SIZE_NO_CHROMA);
+    for (int i = JPEG_DATA_SIZE + headerSize; i < fullSize; i++)
+        target[i + chromaOffset] = (includeChroma ? base_jpeg : base_jpeg_no_chroma)[i];
+}
+
+void updateIncludeChroma() {
+    fillBufferWithBaseJpeg((uint8_t *)frontBuffer, includeChroma || !running);
+    fillBufferWithBaseJpeg((uint8_t *)readyBuffer, includeChroma || !running);
+    fallbackScreenType = FST_NONE;
 }
 
 int main(void) {
@@ -143,8 +155,6 @@ int main(void) {
     tud_init(BOARD_TUD_RHPORT);
     stdio_init_all();
     setupGPIO();
-    fillBufferWithBaseJpeg((uint8_t *)frontBuffer, dmaChannel, dmaConfig);
-    fillBufferWithBaseJpeg((uint8_t *)readyBuffer, dmaChannel, dmaConfig);
     prepareJpegEncoding();
 
     multicore_launch_core1(handleMemoryBus);
@@ -152,10 +162,14 @@ int main(void) {
     while (1) {
 
         printf("Waiting for game.\n");
+        updateIncludeChroma();
         while (!running) {
             if (isGameBoyOn()) {
                 if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_OFF) {
                     loadFallbackScreen(default_raw, FST_DEFAULT);
+                    renderText("Waiting for game...", 0x03, 0x00, (uint8_t *)backBuffer, 5, 79);
+                    if (!includeChroma)
+                        renderText("   60 fps mode.\nSwitch to 30fps if\nthere are problems.", 0x03, 0x00, (uint8_t *)backBuffer, 5, 100);
                     readyBufferIsNew = false;
                     startBackbufferToJPEG(false);
                 }
@@ -163,6 +177,8 @@ int main(void) {
                 if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_DEFAULT || fallbackScreenType == FST_ERROR) {
                     loadFallbackScreen(off_raw, FST_OFF);
                     renderText("The Game Boy\nis turned off", 0x03, 0x00, (uint8_t *)backBuffer, 40, 79);
+                    if (!includeChroma)
+                        renderText("   60 fps mode.\nSwitch to 30fps if\nthere are problems.", 0x03, 0x00, (uint8_t *)backBuffer, 5, 100);
                     readyBufferIsNew = false;
                     startBackbufferToJPEG(false);
                 }
@@ -179,6 +195,7 @@ int main(void) {
 
         ledOn();
         printf("Game started. Cycle ratio: %d\n", cycleRatio);
+        updateIncludeChroma();
         ppuInit();
 
         uint lastCycle = cycleIndex;
@@ -272,7 +289,7 @@ void tud_umount_cb(void) {
 // remote_wakeup_en : if host allow us  to perform remote wakeup
 // Within 7ms, device must draw an average of current less than 2.5 mA from bus
 void tud_suspend_cb(bool remote_wakeup_en) {
-  (void) remote_wakeup_en;
+    (void) remote_wakeup_en;
 }
 
 // Invoked when usb bus is resumed
@@ -280,13 +297,15 @@ void tud_resume_cb(void) {
 }
 
 void tud_video_frame_xfer_complete_cb(uint_fast8_t ctl_idx, uint_fast8_t stm_idx) {
-  (void)ctl_idx; (void)stm_idx;
-  frameSending = false;
+    (void)ctl_idx; (void)stm_idx;
+    frameSending = false;
 }
 
 int tud_video_commit_cb(uint_fast8_t ctl_idx, uint_fast8_t stm_idx, video_probe_and_commit_control_t const *parameters) {
-  (void)ctl_idx; (void)stm_idx;
-  return VIDEO_ERROR_NONE;
+    (void)ctl_idx; (void)stm_idx;
+    includeChroma = parameters->dwFrameInterval > 200000 /*slower than 50fps*/;
+    updateIncludeChroma();
+    return VIDEO_ERROR_NONE;
 }
 
 void tud_cdc_line_state_cb(uint8_t itf, bool dtr, bool rts)  {
