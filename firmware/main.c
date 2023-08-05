@@ -163,6 +163,7 @@ int main(void) {
 
         printf("Waiting for game.\n");
         updateIncludeChroma();
+        uint lastFrame = timer_hw->timerawl;
         while (!running) {
             if (isGameBoyOn()) {
                 if (fallbackScreenType == FST_NONE || fallbackScreenType == FST_OFF) {
@@ -183,8 +184,9 @@ int main(void) {
                     startBackbufferToJPEG(false);
                 }
             }
-            if (readyBufferIsNew) {
+            if (readyBufferIsNew && (!includeChroma || ((uint)(timer_hw->timerawl - lastFrame) > 33333))) {
                 if (usbSendFrame()) {
+                    lastFrame = timer_hw->timerawl;
                     updateFallbackScreen();
                     startBackbufferToJPEG(false);
                 }

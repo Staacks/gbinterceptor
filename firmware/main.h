@@ -6,7 +6,7 @@
 #define LED_SWITCH_PIN 1
 #define LED_PIN_MASK 0x02
 
-#define VERSION "1.2.0-beta3"
+#define VERSION "1.2.0"
 
 //On-screen display
 #define MODE_INFO_DURATION 100 //Duration of the mode info in frames
