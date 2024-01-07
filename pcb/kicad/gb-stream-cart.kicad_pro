@@ -46,7 +46,7 @@
         "silk_text_upright": false,
         "zones": {
           "45_degree_only": false,
-          "min_clearance": 0.25
+          "min_clearance": 0.19999999999999998
         }
       },
       "diff_pair_dimensions": [
@@ -56,7 +56,40 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "copper_edge_clearance|130590000|122000000|8ee03db8-8ad7-4bb8-92b9-76bda4b0907f|a8b2ba06-bb4d-4a0d-9b93-84bf9d112405",
+        "copper_edge_clearance|130590000|70600000|16fca551-3571-4517-ab94-7c1b9d1a3ce1|b9fa80a4-63a1-4a38-902e-35f2557338fd",
+        "copper_edge_clearance|135590000|122000000|f1ad3f74-02d3-4eac-9cda-900ca8378735|699a67cd-3623-4c90-9481-469ef2b96180",
+        "copper_edge_clearance|135590000|70600000|96eb5ece-27d8-4ab5-afe7-8640e2051015|23a1ac70-6d9c-43b0-8447-30cd4de92719",
+        "copper_edge_clearance|160090000|62400000|186cf002-bafb-4518-a4f7-985d13883de2|0c16f7ce-6dec-4ef9-a148-76b23467b52b",
+        "copper_edge_clearance|165090000|125000000|fb08eb4e-4d01-46b4-b939-0155c8ef8388|b363273f-13e6-4a9f-ad80-0c2cb162e343",
+        "copper_edge_clearance|165090000|62400000|27ceb5e8-51df-4ccc-91fe-c21448e6c9fd|c9e59704-2a8c-4239-90e5-91a4032ecc66",
+        "copper_edge_clearance|170090000|125000001|90c56b5e-b983-4463-b672-844d8c706da2|017c2068-a6a7-4a7e-88a3-d3958d6c3573",
+        "copper_edge_clearance|178590000|116800000|60441d93-ceb3-4109-933b-3234e6fc19fa|3e965d51-c950-44e4-aade-2d3ffcc7a1b7",
+        "copper_edge_clearance|178590000|121800000|83ba3f3f-097f-4b98-b24f-33b20d76425e|0975ee0d-5e49-43b3-84ff-d8bef5f05216",
+        "copper_edge_clearance|178590000|70800000|e1273b4a-44d2-4a5c-a7b0-ed8c64acacc2|395f006b-c6e2-4e8e-b10b-32e7d28efa8c",
+        "copper_edge_clearance|178590000|75800000|a623f881-bf21-4f21-bf99-f5c7db3a5968|3cc8b960-aeab-4199-b819-ef1a4b8b4aba",
+        "copper_edge_clearance|178590000|93800000|a623f881-bf21-4f21-bf99-f5c7db3a5968|e8bdbbf0-85f7-4c77-a843-100fb828bbac",
+        "copper_edge_clearance|178590000|98800000|60441d93-ceb3-4109-933b-3234e6fc19fa|607808e7-b53e-4bb2-a151-6e262a964c54",
+        "copper_edge_clearance|180590000|116800000|eefeaa69-a5fe-42d9-8e5a-806a1b488e12|e27b3de6-8d24-47d3-b833-0784b5bafd60",
+        "copper_edge_clearance|180590000|121800000|0e1e548c-ec74-46cb-aa6e-5e8839149d3f|5819553b-a926-4f7f-b3d7-29bef4f6ce1e",
+        "copper_edge_clearance|180590000|70800000|2f78e83c-1d25-448e-afe2-ecdfaca41bf4|fa3583a3-faf6-4c3e-bf5d-5b4f7725042b",
+        "copper_edge_clearance|180590000|75800000|6bcf9f76-ef05-4af0-a533-4c772475fd58|a26897a0-770c-4bec-b8f8-5596714e1a8a",
+        "copper_edge_clearance|180590000|93800000|6bcf9f76-ef05-4af0-a533-4c772475fd58|8ef0e2b3-703e-43bc-aa19-d457264151e5",
+        "copper_edge_clearance|180590000|98800000|eefeaa69-a5fe-42d9-8e5a-806a1b488e12|89d5003b-9702-43ce-a3a0-0e98e2ab303f",
+        "copper_edge_clearance|182090000|125000000|cbe4a067-825c-4c81-8a5f-290d18576059|a8a56657-0ab6-4d04-86ea-b5dfbcf48a46",
+        "copper_edge_clearance|182590000|67900000|7629cb9f-5c7a-4585-8c5f-2f63280a0e51|a616908c-af1f-43ae-a2c6-f3a67743cc2a",
+        "copper_edge_clearance|187090000|125000000|c16eb0f2-fb9f-47b4-a16c-9ce01bbd9c9d|4c2bfcae-30f2-4ed9-bf76-eb2b6529a303",
+        "copper_edge_clearance|187590000|67900000|86e8ff80-aa78-4d5e-beaa-330ad4719b0a|472f337f-6beb-40c0-9e5a-138c629e1234",
+        "copper_edge_clearance|205590000|125000000|c16eb0f2-fb9f-47b4-a16c-9ce01bbd9c9d|e654c3b5-88ee-486d-9e09-13d3820d9d3d",
+        "copper_edge_clearance|205590000|67899999|e534c9a7-4fd6-4c32-ad2b-a555b26f8973|e2be4a2f-5030-46f6-afd5-289845a34f4e",
+        "copper_edge_clearance|210590000|125000000|e7986c60-c517-4fd9-9258-ef08241ca228|c7c98614-1175-45d2-a62d-73fe31ab0b44",
+        "copper_edge_clearance|210590000|67900000|ad2d4e5d-a60e-4144-80bd-d3bdfe5f34b9|f7130a33-9c61-4bc3-8a35-b2855141dde4",
+        "copper_edge_clearance|90090000|122000000|e408af70-9a3d-4b30-a91f-1a69c4a24a80|7aaa7911-22a3-419b-8fd1-6c85254b3b41",
+        "copper_edge_clearance|90090000|70600000|9608f371-5068-4dfe-bc11-cbcdf54d5e25|b878c591-6b56-470a-9f6c-492d1e0e0864",
+        "copper_edge_clearance|95090000|122000000|8ee03db8-8ad7-4bb8-92b9-76bda4b0907f|97824f3a-a982-4322-9b4c-a6fe942623aa",
+        "copper_edge_clearance|95090000|70600000|16fca551-3571-4517-ab94-7c1b9d1a3ce1|3b74d003-8cc9-43e6-a187-3524f8447750"
+      ],
       "meta": {
         "filename": "board_design_settings.json",
         "version": 2
@@ -376,18 +409,23 @@
     "rule_severities": {
       "bus_definition_conflict": "error",
       "bus_entry_needed": "error",
-      "bus_label_syntax": "error",
       "bus_to_bus_conflict": "error",
       "bus_to_net_conflict": "error",
+      "conflicting_netclasses": "error",
       "different_unit_footprint": "error",
       "different_unit_net": "error",
       "duplicate_reference": "error",
       "duplicate_sheet_names": "error",
+      "endpoint_off_grid": "warning",
       "extra_units": "error",
       "global_label_dangling": "warning",
       "hier_label_mismatch": "error",
       "label_dangling": "error",
       "lib_symbol_issues": "warning",
+      "missing_bidi_pin": "warning",
+      "missing_input_pin": "warning",
+      "missing_power_pin": "error",
+      "missing_unit": "warning",
       "multiple_net_names": "warning",
       "net_not_bus_member": "warning",
       "no_connect_connected": "warning",
@@ -397,6 +435,7 @@
       "pin_to_pin": "warning",
       "power_pin_not_driven": "error",
       "similar_labels": "warning",
+      "simulation_model_issue": "error",
       "unannotated": "error",
       "unit_value_mismatch": "error",
       "unresolved_variable": "error",
@@ -478,6 +517,8 @@
   "schematic": {
     "annotate_start_num": 0,
     "drawing": {
+      "dashed_lines_dash_length_ratio": 12.0,
+      "dashed_lines_gap_length_ratio": 3.0,
       "default_line_thickness": 6.0,
       "default_text_size": 50.0,
       "field_names": [],
@@ -509,7 +550,11 @@
     "page_layout_descr_file": "",
     "plot_directory": "",
     "spice_adjust_passive_values": false,
+    "spice_current_sheet_as_root": false,
     "spice_external_command": "spice \"%I\"",
+    "spice_model_current_sheet_as_root": true,
+    "spice_save_all_currents": false,
+    "spice_save_all_voltages": false,
     "subpart_first_id": 65,
     "subpart_id_separator": 0
   },
