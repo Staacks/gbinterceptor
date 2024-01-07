@@ -438,7 +438,7 @@
 
   (footprint "Fiducial:Fiducial_1mm_Mask2mm" (layer "F.Cu")
     (tstamp 0f84a89b-2142-45c3-9739-b9c1181ad634)
-    (at 211.09 128.15)
+    (at 211.54 129.5)
     (descr "Circular Fiducial, 1mm bare copper, 2mm soldermask opening (Level A)")
     (tags "fiducial")
     (attr smd board_only exclude_from_pos_files exclude_from_bom)
@@ -2753,7 +2753,7 @@
 
   (footprint "Fiducial:Fiducial_1mm_Mask2mm" (layer "F.Cu")
     (tstamp 8937a6e7-cd17-486a-8b96-d368aa473f4c)
-    (at 211.09 63.25)
+    (at 211.54 61.9)
     (descr "Circular Fiducial, 1mm bare copper, 2mm soldermask opening (Level A)")
     (tags "fiducial")
     (attr smd board_only exclude_from_pos_files exclude_from_bom)
@@ -2834,7 +2834,7 @@
 
   (footprint "Fiducial:Fiducial_1mm_Mask2mm" (layer "F.Cu")
     (tstamp 9d1e25f2-abfe-42e2-9f34-124e1e7e9abb)
-    (at 89.09 63.25)
+    (at 88.19 61.9)
     (descr "Circular Fiducial, 1mm bare copper, 2mm soldermask opening (Level A)")
     (tags "fiducial")
     (attr smd board_only exclude_from_pos_files exclude_from_bom)
@@ -2974,7 +2974,7 @@
 
   (footprint "Fiducial:Fiducial_1mm_Mask2mm" (layer "F.Cu")
     (tstamp a0f4f98b-7e74-46a9-8db8-6bd1f29b8689)
-    (at 89.09 128.15)
+    (at 88.19 129.5)
     (descr "Circular Fiducial, 1mm bare copper, 2mm soldermask opening (Level A)")
     (tags "fiducial")
     (attr smd board_only exclude_from_pos_files exclude_from_bom)
