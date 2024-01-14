@@ -15,7 +15,7 @@ jobs:
       - name: Clone pico-sdk dependency
         run: |
           git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
-          git reset --hard 2e6142b
+          cd pico-sdk && git reset --hard 2e6142b && cd ..
       - name: Build firmware
         run: |
           arm-none-eabi-gcc --version
