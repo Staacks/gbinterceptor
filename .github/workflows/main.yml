@@ -11,6 +11,12 @@ jobs:
       - name: Install arm-none-eabi-gcc
         run: |
           wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
+          sudo tar xjf gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2 -C ./gcc-arm-none-eabi
+          sudo ln -s ./gcc-arm-none-eabi/bin/arm-none-eabi-gcc /usr/bin/arm-none-eabi-gcc 
+          sudo ln -s ./gcc-arm-none-eabi/bin/arm-none-eabi-g++ /usr/bin/arm-none-eabi-g++
+          sudo ln -s ./gcc-arm-none-eabi/bin/arm-none-eabi-gdb /usr/bin/arm-none-eabi-gdb
+          sudo ln -s ./gcc-arm-none-eabi/bin/arm-none-eabi-size /usr/bin/arm-none-eabi-size
+          sudo ln -s ./gcc-arm-none-eabi/bin/arm-none-eabi-objcopy /usr/bin/arm-none-eabi-objcopy
           arm-none-eabi-gcc --version
       - name: Install pico-sdk
         run: |
