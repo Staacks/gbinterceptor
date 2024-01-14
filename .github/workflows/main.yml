@@ -6,8 +6,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Bananas
-        uses: carlosperate/arm-none-eabi-gcc-action@v1
+      - name: Checkout
+        uses: actions/checkout@main
       - name: Install arm-none-eabi-gcc
         run: |
           wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
