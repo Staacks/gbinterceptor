@@ -22,3 +22,10 @@ jobs:
           mkdir build && cd build
           cmake .. -G Ninja -DPICO_SDK_PATH=../../pico-sdk
           ninja
+      - name: 'Upload artifacts'
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware
+          path: |
+            ./firmware/build/gb_interceptor.*
+          retention-days: 7
