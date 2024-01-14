@@ -1,4 +1,4 @@
-name: Build gbinterceptor
+name: Build gbinterceptor firmware
 on:
   push:
   pull_request:
@@ -8,6 +8,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
-      - name: Build
+      - name: Build firmware
         run: |
-          echo "Test"
+          pwd
+          ls -al
+          git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
+          cd ./firmware
+          mkdir build && cd build
+          cmake .. -G Ninja -DPICO_SDK_PATH=../../pico-sdk
+          ninja
