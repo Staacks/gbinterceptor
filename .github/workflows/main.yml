@@ -8,8 +8,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
-      - name: arm-none-eabi-gcc-action
+      - name: Setup arm-none-eabi-gcc
         uses: carlosperate/arm-none-eabi-gcc-action@v1
+      - name: Setup ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
       - name: Clone pico-sdk dependency
         run: |
           git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
