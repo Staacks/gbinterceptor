@@ -6,12 +6,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@main
+      - name: Bananas
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+      - name: Install arm-none-eabi-gcc
+        run: |
+          wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
+          arm-none-eabi-gcc --version
+      - name: Install pico-sdk
+        run: |
+          git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
       - name: Build firmware
         run: |
-          sudo apt install -y arm-none-eabi-gcc
-          git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
           cd ./firmware
           mkdir build && cd build
           cmake .. -G Ninja -DPICO_SDK_PATH=../../pico-sdk
