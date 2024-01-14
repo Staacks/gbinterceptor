@@ -10,7 +10,7 @@ jobs:
         uses: actions/checkout@main
       - name: Build firmware
         run: |
-          apt install arm-none-eabi-gcc
+          sudo apt install -y arm-none-eabi-gcc
           git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
           cd ./firmware
           mkdir build && cd build
