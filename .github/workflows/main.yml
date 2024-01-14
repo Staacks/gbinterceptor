@@ -8,11 +8,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@main
+      - name: arm-none-eabi-gcc-action
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
       - name: Clone pico-sdk dependency
         run: |
           git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
       - name: Build firmware
-        uses: carlosperate/arm-none-eabi-gcc-action@v1
         run: |
           arm-none-eabi-gcc --version
           cd ./firmware
