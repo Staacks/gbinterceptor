@@ -15,8 +15,8 @@ jobs:
       - name: Clone pico-sdk dependency (pinned versions of pico-sdk and tinyusb)
         run: |
           git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
-          cd pico-sdk && sudo git reset --hard 2e6142b && cd ..
-          cd pico-sdk/lib/tinyusb && sudo git checkout 0.14.0 && cd ../../..
+          cd pico-sdk && sudo git checkout tags/1.5.1 && cd ..
+          cd pico-sdk/lib/tinyusb && sudo git checkout 0.16.0 && cd ../../..
       - name: Build firmware
         run: |
           arm-none-eabi-gcc --version
