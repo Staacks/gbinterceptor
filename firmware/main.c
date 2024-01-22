@@ -5,7 +5,8 @@
 #include "pico/multicore.h"
 #include "pico/mutex.h"
 
-#include "bsp/board.h"
+#include "bsp/rp2040/board.h"
+#include "bsp/board_api.h"
 #include "tusb.h"
 #include "usb_descriptors.h"
 #include "hardware/clocks.h"

@@ -1,0 +1,33 @@
+name: Build gbinterceptor firmware
+on:
+  push:
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+      - name: Setup arm-none-eabi-gcc
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+      - name: Setup ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+      - name: Clone pico-sdk dependency (pinned versions of pico-sdk and tinyusb)
+        run: |
+          git clone https://github.com/raspberrypi/pico-sdk --recurse-submodules
+          cd pico-sdk && sudo git checkout tags/1.5.1 && cd ..
+          cd pico-sdk/lib/tinyusb && sudo git checkout 0.16.0 && cd ../../..
+      - name: Build firmware
+        run: |
+          arm-none-eabi-gcc --version
+          cd ./firmware
+          mkdir build && cd build
+          cmake .. -G Ninja -DPICO_SDK_PATH=../../pico-sdk
+          ninja
+      - name: 'Upload artifacts'
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware
+          path: |
+            ./firmware/build/gb_interceptor.*
+          retention-days: 7
