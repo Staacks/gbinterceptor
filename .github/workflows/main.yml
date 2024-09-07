@@ -25,9 +25,21 @@ jobs:
           cmake .. -G Ninja -DPICO_SDK_PATH=../../pico-sdk
           ninja
       - name: 'Upload artifacts'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: firmware
           path: |
             ./firmware/build/gb_interceptor.*
-          retention-days: 7
+          retention-days: 30
+      - name: Build base video mode firmware
+        run: |
+          rm -rf * .*
+          cmake .. -G Ninja -DBASE_VIDEO_MODE -DPICO_SDK_PATH=../../pico-sdk
+          ninja
+      - name: 'Upload base video mode artifacts'
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware_base_video_mode
+          path: |
+            ./firmware/build/gb_interceptor.*
+          retention-days: 30
