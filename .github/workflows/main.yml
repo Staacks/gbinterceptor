@@ -34,7 +34,7 @@ jobs:
       - name: Build base video mode firmware
         run: |
           cd ./firmware/build
-          rm -rf * .*
+          rm -rf -- ..?* .[!.]* *
           cmake .. -G Ninja -DBASE_VIDEO_MODE -DPICO_SDK_PATH=../../pico-sdk
           ninja
       - name: 'Upload base video mode artifacts'
