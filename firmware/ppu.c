@@ -27,7 +27,11 @@ uint8_t volatile * lastBuffer = buffer4;  //Copy of last back buffer for frame b
 uint8_t * backBufferLine = buffer3;
 bool readyBufferIsNew = false;
 
+#ifdef BASE_VIDEO_MODE
+bool frameBlending = false;
+#else
 bool frameBlending = true;
+#endif
 
 uint lineCycle = 0;
 int x = 0;  //LX

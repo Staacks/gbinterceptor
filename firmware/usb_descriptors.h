@@ -14,6 +14,12 @@ void setUniqueSerial();
 #define FRAME_WIDTH 160*8
 #define FRAME_HEIGHT 144*8
 
+#ifdef BASE_VIDEO_MODE
+#define MIN_FRAME_INTERVAL 333333
+#else
+#define MIN_FRAME_INTERVAL 166666
+#endif
+
 #if CFG_TUD_CDC == 1
 enum {
     ITF_NUM_VIDEO_CONTROL,
@@ -77,7 +83,7 @@ enum {
         TUD_VIDEO_DESC_CS_VS_FRM_MJPEG_CONT(/*bFrameIndex */ 1, 0, _width, _height,                                                                            \
                                               FRAME_SIZE * 8 * 30, FRAME_SIZE_NO_CHROMA * 8 * 60,                                                              \
                                               FRAME_SIZE,                                                                                                      \
-                                              333333, 166666, 333333, 166667),       /*default 30fps, 30fps, 60fps*/                                           \
+                                              333333, MIN_FRAME_INTERVAL, 333333, 166667),       /*default 30fps, 30fps, 60fps*/                                           \
         TUD_VIDEO_DESC_CS_VS_COLOR_MATCHING(VIDEO_COLOR_PRIMARIES_BT709, VIDEO_COLOR_XFER_CH_BT709, VIDEO_COLOR_COEF_SMPTE170M), /* VS alt 1 */                \
         TUD_VIDEO_DESC_STD_VS(ITF_NUM_VIDEO_STREAMING, 1, 1, _stridx),                                                           /* EP */                      \
         TUD_VIDEO_DESC_EP_ISO(_epin, _epsize, 1)
@@ -103,7 +109,7 @@ enum {
         TUD_VIDEO_DESC_CS_VS_FRM_MJPEG_CONT(/*bFrameIndex */ 1, 0, _width, _height,                                                                            \
                                               FRAME_SIZE * 8 * 30, FRAME_SIZE_NO_CHROMA * 8 * 60,                                                              \
                                               FRAME_SIZE,                                                                                                      \
-                                              333333, 166666, 333333, 166667),       /*default 30fps, 30fps, 60fps*/                                           \
+                                              333333, MIN_FRAME_INTERVAL, 333333, 166667),       /*default 30fps, 30fps, 60fps*/                                           \
         TUD_VIDEO_DESC_CS_VS_COLOR_MATCHING(VIDEO_COLOR_PRIMARIES_BT709, VIDEO_COLOR_XFER_CH_BT709, VIDEO_COLOR_COEF_SMPTE170M), /* VS alt 1 */                \
         TUD_VIDEO_DESC_EP_BULK(_epin, _epsize, 1)
 

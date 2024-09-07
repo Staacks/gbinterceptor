@@ -60,6 +60,7 @@ void ledOff() {
 }
 
 void checkModeSwitch() {
+    #ifndef BASE_VIDEO_MODE
     if (gpio_get(LED_SWITCH_PIN)) {
         if (!modeButtonDebounce) {
             modeButtonDebounce = true;
@@ -75,6 +76,7 @@ void checkModeSwitch() {
     } else if (modeButtonDebounce) {
         modeButtonDebounce = false;
     }
+    #endif
 }
 
 bool static inline isGameBoyOn() {
@@ -306,7 +308,11 @@ void tud_video_frame_xfer_complete_cb(uint_fast8_t ctl_idx, uint_fast8_t stm_idx
 
 int tud_video_commit_cb(uint_fast8_t ctl_idx, uint_fast8_t stm_idx, video_probe_and_commit_control_t const *parameters) {
     (void)ctl_idx; (void)stm_idx;
+    #ifdef BASE_VIDEO_MODE
+    includeChroma = true;
+    #else
     includeChroma = parameters->dwFrameInterval > 200000 /*slower than 50fps*/;
+    #endif
     updateIncludeChroma();
     return VIDEO_ERROR_NONE;
 }

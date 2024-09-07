@@ -6,7 +6,13 @@
 #define LED_SWITCH_PIN 1
 #define LED_PIN_MASK 0x02
 
-#define VERSION "1.2.0"
+#define BASEVERSION "1.2.0"
+
+#ifdef BASE_VIDEO_MODE
+#define VERSION BASEVERSION "B"
+#else
+#define VERSION BASEVERSION
+#endif
 
 //On-screen display
 #define MODE_INFO_DURATION 100 //Duration of the mode info in frames
