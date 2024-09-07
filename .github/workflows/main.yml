@@ -35,7 +35,7 @@ jobs:
         run: |
           cd ./firmware/build
           rm -rf -- ..?* .[!.]* *
-          export CXXFLAGS="-D_BASE_VIDEO_MODE=1
+          export CXXFLAGS="-D_BASE_VIDEO_MODE=1"
           cmake .. -G Ninja -DPICO_SDK_PATH=../../pico-sdk
           ninja
       - name: 'Upload base video mode artifacts'
