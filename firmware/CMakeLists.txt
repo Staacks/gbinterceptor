@@ -47,4 +47,6 @@ pico_generate_pio_header(gb_interceptor
 		${CMAKE_CURRENT_LIST_DIR}/jpeg/jpeg_encoding.pio
 )
 
-#add_compile_definitions(BASE_VIDEO_MODE) #Uncomment for base video mode version with fixed 30fps and no frame blending
+if (DEFINED BASE_VIDEO_MODE)
+	add_compile_definitions(BASE_VIDEO_MODE) #Uncomment for base video mode version with fixed 30fps and no frame blending
+endif()
