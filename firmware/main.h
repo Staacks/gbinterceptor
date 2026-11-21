@@ -6,7 +6,7 @@
 #define LED_SWITCH_PIN 1
 #define LED_PIN_MASK 0x02
 
-#define BASEVERSION "1.2.2"
+#define BASEVERSION "1.2.3"
 
 #ifdef BASE_VIDEO_MODE
 #define VERSION BASEVERSION "B"
