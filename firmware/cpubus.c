@@ -32,7 +32,7 @@ uint8_t volatile * extra = (uint8_t*)(&rawBusData) + 3;
 
 //Used to remember previous memory data to dump a history if needed
 uint32_t history[256]; //Buffer for memory events
-uint volatile cycleIndex; // Just counting cycles. Lowest byte can be used as index to the cyclic history array and the second byte is used as the Game Boy's DIV register
+uint volatile cycleIndex; // Just counting cycles. Lowest byte can be used as index to the cyclic history array, and with div it emulates the Game Boy's DIV register
 uint8_t volatile * historyIndex = (uint8_t *)&cycleIndex; //Index for history array, lowest byte of cycleIndex
 uint volatile div; //cycle that corresponds to DIV register equaling zero
 uint8_t readAheadIndex;
@@ -119,7 +119,7 @@ void dmaToOAM(uint16_t source) {
 void reset() {
     cycleIndex = 0;
     readAheadIndex = HISTORY_READAHEAD;
-    div = cycleIndex - 0x0000ab00u; //Starts at 0xab
+    div = cycleIndex - (0xab << 6); //Starts at 0xab
 
     ignoreCycles = 0;
 

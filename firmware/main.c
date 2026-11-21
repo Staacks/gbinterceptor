@@ -5,7 +5,6 @@
 #include "pico/multicore.h"
 #include "pico/mutex.h"
 
-#include "bsp/rp2040/boards/raspberry_pi_pico/board.h"
 #include "bsp/board_api.h"
 #include "tusb.h"
 #include "usb_descriptors.h"

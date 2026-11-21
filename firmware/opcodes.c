@@ -80,7 +80,15 @@ void toMemory(uint16_t address, uint8_t data) {
                 tileData8000 = (data & 0x10) != 0;
                 windowEnable = (data & 0x20) != 0;
                 windowTileMap9C00 = (data & 0x40) != 0;
-                lcdAndPpuEnable = (data & 0x80) != 0;
+                if ((data & 0x80) && !lcdAndPpuEnable) {
+                    //LCD is on and the real PPU starts at line 0, so we need to calculate the offset for the emulated PPU to also return to line 0
+                    int offset = -y * CYCLES_PER_LINE - (int)lineCycle;
+                    if (offset < -CYCLES_PER_FRAME/2)
+                        offset += CYCLES_PER_FRAME;
+                    lcdAndPpuEnable = true; // Turn on first, so core 0 does not discard the offset
+                    vblankOffset = offset;
+                } else
+                    lcdAndPpuEnable = (data & 0x80) != 0;
                 break;
             case 0xff41: //STAT
                 //Due to the STAT interrupt bug on DMG and GBP, we disable interrupt sycnhronization for a few cycles after any write to the STAT register
@@ -121,6 +129,11 @@ void toMemory(uint16_t address, uint8_t data) {
                 // We only care about bit 0.
                 blockVRAMWrites = data & 1;
                 break;
+            case 0xffff: //IE
+                //Interrupts can be disabled by clearing bits in IE instead of using DI. Restoring IE lets a pending interrupt fire immediately, so its timing cannot be use for synchronization.
+                if (data & ~memory[0xffff] & 0x03) // Only if VBLANK or STAT were off and are now enabled
+                    interruptsEnableCycle = cycleIndex;
+                break;
             case 0xff4d: //KEY1, GBC double speed mode switch
                 if (data & 0x01)
                     stop("Game Boy Color\ngames are not\nsupported.");
@@ -136,7 +149,7 @@ void toMemory(uint16_t address, uint8_t data) {
 uint8_t static inline fromMemory(uint16_t addr) {
     DEBUG_TRIGGER_BREAKPOINT_AT_READ_FROM_ADDRESS
     switch (addr) {
-        case 0xff04: return (uint8_t)((uint)(cycleIndex - div) >> 8); //DIV register
+        case 0xff04: return (uint8_t)((uint)(cycleIndex - div) >> 6); //DIV register, increments at 16384Hz, i.e. every 64 M-cycles
         case 0xff41:
                     //STAT register. Since this is usually only used for conditional jumps done in the real Game Boy, emulating the correct value is not ciritcally here.
                     //Instead we use it to synchronize our PPU to the real one:
